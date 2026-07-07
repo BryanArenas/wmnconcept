@@ -177,5 +177,46 @@ export interface Inspection {
   approved_at: string | null;
   delivered_at: string | null;
   rejection_note: string | null;
+  // M6 — report/invoice presence (mirrors InspectionSerializer)
+  has_report: boolean;
+  report_generated_at: string | null;
+  report_delivered_at: string | null;
+  has_invoice: boolean;
+  invoice_amount_cents: number | null;
+  invoice_status: InvoiceStatus | null;
+  created_at: string;
+}
+
+// M6 — report + delivery ledger (mirrors ReportSerializer)
+export interface ReportDelivery {
+  email: string;
+  role: string;
+  status: string;
+  delivered_at: string;
+}
+
+export interface Report {
+  id: string;
+  inspection_id: string;
+  filename: string;
+  generated_at: string;
+  delivered_at: string | null;
+  delivered_to: ReportDelivery[];
+  download_url: string | null;
+}
+
+// M6/M7 — billing (mirrors InvoiceSerializer)
+export type InvoiceStatus = "draft" | "sent" | "paid" | "void";
+export type InvoiceBillingMode = "fixed_rate" | "commission";
+
+export interface Invoice {
+  id: string;
+  inspection_id: string;
+  agency_id: string;
+  amount_cents: number;
+  billing_mode: InvoiceBillingMode;
+  status: InvoiceStatus;
+  stripe_invoice_id: string | null;
+  due_at: string | null;
   created_at: string;
 }

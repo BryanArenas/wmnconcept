@@ -9,6 +9,7 @@ class Agency < ApplicationRecord
   has_many :agency_users, dependent: :restrict_with_exception
   has_many :inspection_requests, dependent: :restrict_with_exception
   has_many :inspections, dependent: :restrict_with_exception
+  has_many :invoices, dependent: :restrict_with_exception
 
   enum :type, {
     insurance: "insurance",

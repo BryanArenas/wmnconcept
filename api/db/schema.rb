@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_081826) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_083118) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -192,6 +192,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_081826) do
     t.check_constraint "status::text = ANY (ARRAY['unassigned'::character varying, 'assigned'::character varying, 'scheduled'::character varying, 'in_progress'::character varying, 'submitted_for_review'::character varying, 'approved'::character varying, 'delivered'::character varying, 'rejected'::character varying, 'cancelled'::character varying]::text[])", name: "inspections_status_check"
   end
 
+  create_table "invoices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "agency_id", null: false
+    t.integer "amount_cents", null: false
+    t.string "billing_mode", null: false
+    t.datetime "created_at", null: false
+    t.datetime "due_at"
+    t.uuid "inspection_id", null: false
+    t.uuid "organization_id", null: false
+    t.string "status", default: "draft", null: false
+    t.string "stripe_invoice_id"
+    t.datetime "updated_at", null: false
+    t.index ["agency_id"], name: "index_invoices_on_agency_id"
+    t.index ["inspection_id"], name: "index_invoices_on_inspection_id", unique: true
+    t.index ["organization_id", "status"], name: "index_invoices_on_organization_id_and_status"
+    t.index ["organization_id"], name: "index_invoices_on_organization_id"
+    t.index ["stripe_invoice_id"], name: "index_invoices_on_stripe_invoice_id", unique: true, where: "(stripe_invoice_id IS NOT NULL)"
+    t.check_constraint "amount_cents >= 0", name: "invoices_amount_cents_nonneg_check"
+    t.check_constraint "billing_mode::text = ANY (ARRAY['fixed_rate'::character varying, 'commission'::character varying]::text[])", name: "invoices_billing_mode_check"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'sent'::character varying, 'paid'::character varying, 'void'::character varying]::text[])", name: "invoices_status_check"
+  end
+
   create_table "offices", force: :cascade do |t|
     t.string "address"
     t.string "city"
@@ -235,6 +256,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_081826) do
     t.index ["organization_id", "normalized_address"], name: "index_properties_on_organization_id_and_normalized_address", unique: true
     t.index ["organization_id"], name: "index_properties_on_organization_id"
     t.check_constraint "structure_type IS NULL OR (structure_type::text = ANY (ARRAY['single_family'::character varying, 'condo'::character varying, 'hoa_master'::character varying, 'commercial'::character varying, 'mobile'::character varying]::text[]))", name: "properties_structure_type_check"
+  end
+
+  create_table "reports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "delivered_at"
+    t.jsonb "delivered_to", default: [], null: false
+    t.datetime "generated_at", null: false
+    t.uuid "inspection_id", null: false
+    t.uuid "organization_id", null: false
+    t.string "s3_key", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inspection_id"], name: "index_reports_on_inspection_id", unique: true
+    t.index ["organization_id"], name: "index_reports_on_organization_id"
+    t.index ["s3_key"], name: "index_reports_on_s3_key", unique: true
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -30,6 +30,8 @@ class Inspection < ApplicationRecord
   has_many :inspection_events, dependent: :destroy
   has_many :inspection_photos, dependent: :destroy
   has_one  :inspection_form_response, dependent: :destroy
+  has_one  :report, dependent: :destroy
+  has_one  :invoice, dependent: :destroy
 
   enum :inspection_type, INSPECTION_TYPES.index_with(&:itself), validate: true
 

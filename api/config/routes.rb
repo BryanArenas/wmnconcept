@@ -33,6 +33,9 @@ Rails.application.routes.draw do
           post   :start
           post   :cancel
           post   :submit
+          # Review → delivery (M6)
+          post   :approve
+          post   :reject
           # Field capture (M5)
           get    :form_template
           get    :photos, to: "inspections#photos_index"
@@ -40,6 +43,9 @@ Rails.application.routes.draw do
           patch  "photos/:photo_id/confirm", to: "inspections#confirm_photo"
           put    :form_response
         end
+        # Generated report + signed download (M6, spec §8.4)
+        get "report", to: "reports#show"
+        get "report/download", to: "reports#download"
       end
 
       # Staff roster for dispatch inspector dropdown (spec §8.8, M4).

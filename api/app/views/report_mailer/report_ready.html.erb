@@ -1,0 +1,13 @@
+<p>Hi <%= @recipient %>,</p>
+
+<p>
+  The inspection report for
+  <strong><%= [@property.address, @property.city].compact.join(", ") %></strong>
+  is ready.
+</p>
+
+<p>
+  <a href="<%= @download_url %>">Download your report</a>
+</p>
+
+<p>Thank you,<br>Wind Mitigation Network LLC</p>

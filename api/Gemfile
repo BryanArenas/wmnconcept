@@ -51,6 +51,16 @@ gem "aasm", "~> 5.5"
 # PhotoUploadService so it doesn't add overhead when AWS is not configured.
 gem "aws-sdk-s3", "~> 1.170", require: false
 
+# PDF report generation (M6, spec §9). Pure Ruby — no wkhtmltopdf/Chrome system
+# dependency, reliable in CI. M6 renders the PLACEHOLDER schema (§13); the
+# certified OIR-B1-1802 layout swaps in on receipt without changing the pipeline.
+gem "prawn", "~> 2.5"
+gem "prawn-table", "~> 0.2"
+
+# Stripe billing + idempotent webhooks (M7, spec §9). Loaded on demand in the
+# billing services so it adds no overhead when Stripe is not configured.
+gem "stripe", "~> 13.0", require: false
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

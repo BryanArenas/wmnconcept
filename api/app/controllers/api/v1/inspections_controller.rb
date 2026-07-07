@@ -11,7 +11,7 @@ module Api
       def index
         authorize Inspection
         scope = policy_scope(Inspection)
-                  .includes(:agency, :property, :homeowner, :assigned_inspector)
+                  .includes(:agency, :property, :homeowner, :assigned_inspector, :report, :invoice)
         scope = scope.where(status: params[:status]) if params[:status].present?
         inspections, next_cursor = paginate(scope)
         render json: {
@@ -67,6 +67,26 @@ module Api
         inspection = find_scoped_inspection
         authorize inspection, :submit?
         inspection.submit_by!(actor: current_principal)
+        render json: { data: InspectionSerializer.call(inspection.reload) }
+      end
+
+      # --- Review → delivery (M6, spec §8.13) -----------------------------------
+
+      # Manager approves (submitted_for_review → approved). Enqueues the report
+      # pipeline; does NOT deliver (spec §6 invariant — delivery needs a PDF).
+      def approve
+        inspection = find_scoped_inspection
+        authorize inspection, :approve?
+        inspection.approve_by!(actor: current_user)
+        render json: { data: InspectionSerializer.call(inspection.reload) }
+      end
+
+      # Manager sends back (submitted_for_review → in_progress). Body:
+      # { inspection: { rejection_note } } — note required (spec §6 guard).
+      def reject
+        inspection = find_scoped_inspection
+        authorize inspection, :reject?
+        inspection.reject_with_note!(review_params[:rejection_note], actor: current_user)
         render json: { data: InspectionSerializer.call(inspection.reload) }
       end
 
@@ -148,6 +168,10 @@ module Api
 
       def form_response_params
         params.require(:form_response).permit(responses: {})
+      end
+
+      def review_params
+        params.require(:inspection).permit(:rejection_note)
       end
 
       def parse_scheduled_at!(str)

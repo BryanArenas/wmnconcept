@@ -23,6 +23,15 @@ module InspectionSerializer
       approved_at: inspection.approved_at,
       delivered_at: inspection.delivered_at,
       rejection_note: inspection.rejection_note,
+      # M6 — report/invoice presence flags so detail screens can render the
+      # report card + billing line without a second round-trip. The signed
+      # download URL is fetched lazily via GET …/report (spec §8.4).
+      has_report: inspection.report.present?,
+      report_generated_at: inspection.report&.generated_at,
+      report_delivered_at: inspection.report&.delivered_at,
+      has_invoice: inspection.invoice.present?,
+      invoice_amount_cents: inspection.invoice&.amount_cents,
+      invoice_status: inspection.invoice&.status,
       created_at: inspection.created_at
     }
   end

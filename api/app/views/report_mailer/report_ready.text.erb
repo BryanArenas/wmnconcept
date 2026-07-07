@@ -1,0 +1,9 @@
+Hi <%= @recipient %>,
+
+The inspection report for <%= [@property.address, @property.city].compact.join(", ") %> is ready.
+
+Download it here:
+<%= @download_url %>
+
+Thank you,
+Wind Mitigation Network LLC

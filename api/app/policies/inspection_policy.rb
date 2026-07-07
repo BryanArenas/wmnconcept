@@ -27,6 +27,16 @@ class InspectionPolicy < ApplicationPolicy
   def save_form?       = field_actor?
   def submit?          = field_actor?
 
+  # Review → delivery (M6, spec §8.13). Manager quality-gates; org_admin inherits
+  # manager rights (spec §2). Approve fires the report pipeline; reject sends back.
+  def approve? = manager_actor?
+  def reject?  = manager_actor?
+
+  # The delivered report is visible to anyone who can see the inspection — the
+  # tenancy scope (agency→own, inspector→own, staff→all) already gates this.
+  def report?   = true
+  def download? = true
+
   private
 
   def field_actor?
@@ -34,6 +44,12 @@ class InspectionPolicy < ApplicationPolicy
 
     user.org_admin? || user.coordinator? ||
       (user.inspector? && record.assigned_inspector_id == user.id)
+  end
+
+  def manager_actor?
+    return false if user.agency?
+
+    user.org_admin? || user.manager?
   end
 
   class Scope < ApplicationPolicy::Scope
