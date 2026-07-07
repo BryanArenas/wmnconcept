@@ -50,6 +50,14 @@ Rails.application.routes.draw do
 
       # Staff roster for dispatch inspector dropdown (spec §8.8, M4).
       resources :users, only: %i[index]
+
+      # Billing surface (spec §4, §8.5, M7).
+      resources :invoices, only: %i[index show] do
+        member { post :send, action: :send_invoice }
+      end
+
+      # Inbound Stripe webhooks — public, signature-verified (spec §4, §9).
+      post "webhooks/stripe", to: "webhooks/stripe#create"
     end
   end
 end

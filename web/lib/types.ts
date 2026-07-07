@@ -182,6 +182,7 @@ export interface Inspection {
   report_generated_at: string | null;
   report_delivered_at: string | null;
   has_invoice: boolean;
+  invoice_id: string | null;
   invoice_amount_cents: number | null;
   invoice_status: InvoiceStatus | null;
   created_at: string;

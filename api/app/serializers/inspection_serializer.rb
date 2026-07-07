@@ -30,6 +30,7 @@ module InspectionSerializer
       report_generated_at: inspection.report&.generated_at,
       report_delivered_at: inspection.report&.delivered_at,
       has_invoice: inspection.invoice.present?,
+      invoice_id: inspection.invoice&.id,
       invoice_amount_cents: inspection.invoice&.amount_cents,
       invoice_status: inspection.invoice&.status,
       created_at: inspection.created_at

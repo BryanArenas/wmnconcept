@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_083118) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_084730) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -239,6 +239,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_083118) do
     t.index ["subdomain"], name: "index_organizations_on_subdomain", unique: true
   end
 
+  create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.uuid "invoice_id", null: false
+    t.string "method", default: "card", null: false
+    t.uuid "organization_id", null: false
+    t.datetime "paid_at"
+    t.string "stripe_payment_intent_id"
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id"], name: "index_payments_on_invoice_id"
+    t.index ["organization_id"], name: "index_payments_on_organization_id"
+    t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true, where: "(stripe_payment_intent_id IS NOT NULL)"
+    t.check_constraint "amount_cents >= 0", name: "payments_amount_cents_nonneg_check"
+    t.check_constraint "method::text = ANY (ARRAY['card'::character varying, 'cash'::character varying, 'ach'::character varying]::text[])", name: "payments_method_check"
+  end
+
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "address", null: false
     t.string "city"
@@ -289,6 +305,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_083118) do
     t.index ["organization_id", "email"], name: "index_users_on_organization_id_and_email", unique: true
     t.index ["organization_id"], name: "index_users_on_organization_id"
     t.check_constraint "role::text = ANY (ARRAY['org_admin'::character varying, 'coordinator'::character varying, 'inspector'::character varying, 'manager'::character varying]::text[])", name: "users_role_check"
+  end
+
+  create_table "webhook_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "external_id", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "processed_at"
+    t.string "provider", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "external_id"], name: "index_webhook_events_on_provider_and_external_id", unique: true
   end
 
   add_foreign_key "agencies", "organizations"

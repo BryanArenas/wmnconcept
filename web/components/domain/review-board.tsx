@@ -173,6 +173,12 @@ function DeliveredRow({ inspection }: { inspection: Inspection }) {
             {inspection.homeowner_name} · {inspection.agency_name}
           </p>
         </div>
+        {inspection.has_invoice && inspection.invoice_id && (
+          <SendInvoiceButton
+            invoiceId={inspection.invoice_id}
+            status={inspection.invoice_status}
+          />
+        )}
       </div>
       {inspection.has_report && (
         <ReportCard
@@ -180,6 +186,44 @@ function DeliveredRow({ inspection }: { inspection: Inspection }) {
           deliveredAt={inspection.report_delivered_at}
         />
       )}
+    </div>
+  );
+}
+
+function SendInvoiceButton({
+  invoiceId,
+  status,
+}: {
+  invoiceId: string;
+  status: Inspection["invoice_status"];
+}) {
+  const [sent, setSent] = React.useState(status === "sent" || status === "paid");
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  if (status === "paid") {
+    return <Badge variant="secondary" className="shrink-0">Paid</Badge>;
+  }
+
+  async function handleSend() {
+    setPending(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/invoices/${invoiceId}/send`, { method: "POST" });
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not send.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <Button size="sm" variant="outline" onClick={handleSend} disabled={pending || sent}>
+        {sent ? "Invoice sent" : pending ? "Sending…" : "Send invoice"}
+      </Button>
+      {error && <p className="text-label text-destructive">{error}</p>}
     </div>
   );
 }

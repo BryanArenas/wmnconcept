@@ -10,6 +10,7 @@ class Invoice < ApplicationRecord
   belongs_to :organization
   belongs_to :agency
   belongs_to :inspection
+  has_many :payments, dependent: :restrict_with_exception
 
   enum :billing_mode, {
     fixed_rate: "fixed_rate",
@@ -24,4 +25,17 @@ class Invoice < ApplicationRecord
   scope :for_status, ->(s) { where(status: s) }
 
   def amount_dollars = amount_cents / 100.0
+
+  # Lifecycle helpers (spec §3: draft → sent → paid | void). Kept explicit rather
+  # than a state machine — the invoice has no guards/side-effect jobs of its own;
+  # the money side effects live on Payment + the Stripe webhook path.
+  def mark_sent!(stripe_invoice_id: nil)
+    update!(status: "sent", stripe_invoice_id: stripe_invoice_id || self.stripe_invoice_id)
+  end
+
+  def mark_paid!
+    update!(status: "paid")
+  end
+
+  def payable? = %w[draft sent].include?(status)
 end
