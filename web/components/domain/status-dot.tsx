@@ -22,8 +22,10 @@ export function StatusDot({
         style={{ backgroundColor: meta.color }}
         aria-hidden
       />
-      {showLabel && (
+      {showLabel ? (
         <span className="text-body text-muted-foreground">{meta.label}</span>
+      ) : (
+        <span className="sr-only">{meta.label}</span>
       )}
     </span>
   );

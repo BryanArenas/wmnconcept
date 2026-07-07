@@ -1,10 +1,24 @@
+import { cookies } from "next/headers";
+import Link from "next/link";
 import { PageHeader } from "@/components/domain/page-header";
 import { StatCard } from "@/components/domain/stat-card";
 import { EmptyState } from "@/components/domain/empty-state";
+import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
+import type { Invoice, Paginated } from "@/lib/types";
 
-// Agency — Dashboard (§8.1). The partner wedge: at-a-glance status + one-tap
-// request. Agency auth + live data land in M2–M3.
-export default function AgencyDashboardPage() {
+export default async function AgencyDashboardPage() {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  const opts = { headers: { cookie: cookieHeader }, cache: "no-store" as const };
+
+  const invoices = await apiFetch<Paginated<Invoice>>("/api/v1/invoices?limit=100", opts)
+    .catch(() => null);
+
+  const total = invoices?.data.length ?? 0;
+  const paid = invoices?.data.filter((i) => i.status === "paid").length ?? 0;
+  const outstanding = invoices?.data.filter((i) => i.status === "sent").length ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -14,15 +28,22 @@ export default function AgencyDashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Open inspections" value="—" />
-        <StatCard label="Delivered all-time" value="—" />
-        <StatCard label="Reports this week" value="—" />
+        <StatCard label="Total invoices" value={invoices ? String(total) : "—"} />
+        <StatCard label="Paid" value={invoices ? String(paid) : "—"} />
+        <StatCard label="Outstanding" value={invoices ? String(outstanding) : "—"} />
       </div>
 
-      <EmptyState
-        title="No inspections yet."
-        description="Request your first — reports usually arrive within 24 hours. The agency portal goes live in M2–M3."
-      />
+      {total === 0 && (
+        <EmptyState
+          title="No inspections yet."
+          description="Request your first — reports usually arrive within 24 hours."
+          action={
+            <Button asChild>
+              <Link href="/agency/request/new">Request inspection</Link>
+            </Button>
+          }
+        />
+      )}
     </div>
   );
 }

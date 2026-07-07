@@ -61,6 +61,11 @@ gem "prawn-table", "~> 0.2"
 # billing services so it adds no overhead when Stripe is not configured.
 gem "stripe", "~> 13.0", require: false
 
+# Structured JSON request logging for production (M8 observability, spec §10).
+# Replaces the verbose default Rails logger output with a single JSON line per
+# request containing method, path, status, duration, and tenant context.
+gem "lograge", "~> 0.14"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

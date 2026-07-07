@@ -3,6 +3,7 @@
 import type { Surface, User } from "@/lib/types";
 import { BrandMark } from "@/components/domain/brand-mark";
 import { SideNav } from "@/components/domain/side-nav";
+import { MobileNav } from "@/components/domain/mobile-nav";
 import { UserMenu } from "@/components/domain/user-menu";
 
 const ROLE_LABEL: Record<User["role"], string> = {
@@ -55,15 +56,18 @@ export function AppShell({
         )}
 
         <main
+          id="main-content"
           className={
             isField
-              ? "mx-auto w-full max-w-[560px] px-5 py-7"
-              : "min-w-0 flex-1 px-5 py-7 sm:px-7"
+              ? "mx-auto w-full max-w-[560px] px-5 py-7 pb-20 md:pb-7"
+              : "min-w-0 flex-1 px-5 py-7 pb-20 sm:px-7 md:pb-7"
           }
         >
           {children}
         </main>
       </div>
+
+      <MobileNav role={user.role} surface={surface} />
     </div>
   );
 }

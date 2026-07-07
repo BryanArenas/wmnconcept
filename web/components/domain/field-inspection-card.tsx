@@ -161,9 +161,11 @@ export function FieldInspectionCard({ inspection: initial, onUpdated }: Props) {
           )}
           {isInProgress && (
             <Button
-              size="sm"
+              size="icon"
               variant="ghost"
               onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              aria-label={expanded ? "Collapse inspection" : "Expand inspection"}
             >
               {expanded ? (
                 <ChevronUp className="h-4 w-4" />

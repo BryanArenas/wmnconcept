@@ -29,6 +29,15 @@ class ApplicationController < ActionController::API
 
   after_action :set_csrf_cookie
 
+  def append_info_to_payload(payload)
+    super
+    payload[:request_id] = request.request_id
+    if current_principal
+      payload[:user_id] = current_principal.id
+      payload[:organization_id] = current_principal.organization_id
+    end
+  end
+
   private
 
   def set_csrf_cookie

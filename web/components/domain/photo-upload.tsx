@@ -134,6 +134,7 @@ export function PhotoUpload({
             accept="image/*"
             multiple
             className="hidden"
+            aria-label="Upload inspection photos"
             onChange={(e) => handleFiles(e.target.files)}
           />
           <Button

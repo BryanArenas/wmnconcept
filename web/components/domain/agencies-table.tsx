@@ -49,7 +49,7 @@ export function AgenciesTable({ initialAgencies, canCreate }: Props) {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-body">
+          <table className="w-full text-body" aria-label="Agencies">
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
