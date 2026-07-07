@@ -17,6 +17,16 @@ Rails.application.routes.draw do
       resources :agencies, only: %i[index create] do
         resources :agency_users, only: %i[create]
       end
+
+      # Inspection intake + triage (spec §8.2, §8.7, M3).
+      resources :inspection_type_configs, only: %i[index]
+      resources :inspection_requests, only: %i[index create] do
+        member do
+          post :accept
+          post :decline
+        end
+      end
+      resources :inspections, only: %i[index show]
     end
   end
 end
