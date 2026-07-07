@@ -1,19 +1,34 @@
+import { cookies } from "next/headers";
 import { PageHeader } from "@/components/domain/page-header";
-import { EmptyState } from "@/components/domain/empty-state";
+import { AgenciesTable } from "@/components/domain/agencies-table";
+import { getCurrentUser } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
+import type { Agency, Paginated } from "@/lib/types";
 
-// Coordinator — Agencies (§8.9, org_admin). Onboarding + invites land in M2.
-export default function AgenciesPage() {
+// Fetches the first page of agencies server-side (session cookie forwarded).
+// org_admin sees the "Add agency" button; coordinators/managers see read-only.
+export default async function AgenciesPage() {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+
+  const [user, result] = await Promise.all([
+    getCurrentUser(),
+    apiFetch<Paginated<Agency>>("/api/v1/agencies", {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    }).catch(() => ({ data: [] as Agency[], meta: { next_cursor: null } })),
+  ]);
+
+  const canCreate = user?.role === "org_admin";
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Partners"
         title="Agencies"
-        description="Onboard referral partners and invite their first user. Billing mode is set per agency."
+        description="Manage referral partners and their portal logins. Billing mode is set per agency."
       />
-      <EmptyState
-        title="No agencies yet."
-        description="Agency onboarding and invites arrive in M2."
-      />
+      <AgenciesTable initialAgencies={result.data} canCreate={canCreate} />
     </div>
   );
 }

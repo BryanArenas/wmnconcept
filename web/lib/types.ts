@@ -51,3 +51,17 @@ export interface Paginated<T> {
   data: T[];
   meta: { next_cursor: string | null };
 }
+
+export type AgencyType = "insurance" | "real_estate" | "other";
+export type BillingMode = "fixed_rate" | "commission";
+
+export interface Agency {
+  id: string;
+  name: string;
+  type: AgencyType;
+  billing_mode: BillingMode;
+  commission_rate: string | null;
+  primary_contact_email: string | null;
+  phone: string | null;
+  active: boolean;
+}
