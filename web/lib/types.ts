@@ -65,3 +65,44 @@ export interface Agency {
   phone: string | null;
   active: boolean;
 }
+
+// M3 — inspection intake + triage
+
+export interface InspectionTypeConfig {
+  id: number;
+  inspection_type: string;
+  label: string;
+  price_cents: number;
+  active: boolean;
+}
+
+export interface PropertySnippet {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string | null;
+}
+
+export interface HomeownerSnippet {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
+export type InspectionRequestStatus = "submitted" | "accepted" | "declined";
+
+export interface InspectionRequest {
+  id: string;
+  status: InspectionRequestStatus;
+  requested_types: string[];
+  preferred_dates: string | null;
+  notes: string | null;
+  decline_reason: string | null;
+  agency_id: string;
+  agency_name: string;
+  property: PropertySnippet;
+  homeowner: HomeownerSnippet;
+  created_at: string;
+}
