@@ -115,6 +115,47 @@ export interface InspectionRequest {
   created_at: string;
 }
 
+// M5 — field capture
+
+export type FormFieldType = "text" | "number" | "boolean" | "select" | "multi_select";
+
+export interface FormField {
+  key: string;
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  options?: string[];
+}
+
+export interface FormSchema {
+  fields: FormField[];
+}
+
+export interface InspectionFormTemplate {
+  id: number;
+  inspection_type: string;
+  schema: FormSchema;
+  active: boolean;
+  position: number;
+}
+
+export interface InspectionPhoto {
+  id: string;
+  inspection_id: string;
+  s3_key: string;
+  upload_state: "pending" | "uploaded";
+  filename: string | null;
+  content_type: string | null;
+  created_at: string;
+}
+
+export interface InspectionFormResponse {
+  id: number;
+  inspection_id: string;
+  responses: Record<string, string | number | boolean | string[]>;
+  updated_at: string;
+}
+
 // M4 — dispatch + calendar (mirrors InspectionSerializer)
 export interface Inspection {
   id: string;

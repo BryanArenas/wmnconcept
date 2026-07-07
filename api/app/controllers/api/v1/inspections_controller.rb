@@ -61,6 +61,77 @@ module Api
         render json: { data: InspectionSerializer.call(inspection.reload) }
       end
 
+      # Inspector submits completed evidence (in_progress → submitted_for_review).
+      # Guard: ready_for_review? (≥1 uploaded photo + required form fields).
+      def submit
+        inspection = find_scoped_inspection
+        authorize inspection, :submit?
+        inspection.submit_by!(actor: current_principal)
+        render json: { data: InspectionSerializer.call(inspection.reload) }
+      end
+
+      # --- Field capture (M5) ---------------------------------------------------
+
+      # GET all photos for an inspection (field app resume after restart).
+      def photos_index
+        inspection = find_scoped_inspection
+        authorize inspection, :show?
+        render json: {
+          data: inspection.inspection_photos.order(:created_at).map do |p|
+            InspectionPhotoSerializer.call(p)
+          end
+        }
+      end
+
+      # GET form template for this inspection type; 404 if none configured yet.
+      def form_template
+        inspection = find_scoped_inspection
+        authorize inspection, :show_form?
+        template = current_organization.inspection_form_templates
+                                       .active
+                                       .find_by!(inspection_type: inspection.inspection_type)
+        render json: { data: InspectionFormTemplateSerializer.call(template) }
+      rescue ActiveRecord::RecordNotFound
+        render_error(code: "not_found", message: "No form template configured for this inspection type",
+                     status: :not_found)
+      end
+
+      # POST a new photo: returns the InspectionPhoto + presigned S3 PUT URL.
+      # Body: { photo: { filename, content_type } }
+      def photos_create
+        inspection = find_scoped_inspection
+        authorize inspection, :upload_photo?
+        result = PhotoUploadService.presign(
+          inspection:,
+          filename: photo_params[:filename],
+          content_type: photo_params[:content_type]
+        )
+        render json: {
+          data: InspectionPhotoSerializer.call(result[:photo]),
+          presigned_url: result[:presigned_url]
+        }, status: :created
+      end
+
+      # PATCH confirm: client calls this after the S3 PUT completes.
+      def confirm_photo
+        inspection = find_scoped_inspection
+        authorize inspection, :confirm_photo?
+        photo = inspection.inspection_photos.find(params[:photo_id])
+        photo.confirm!
+        render json: { data: InspectionPhotoSerializer.call(photo) }
+      end
+
+      # PUT form_response: upsert the inspector's form answers.
+      # Body: { form_response: { responses: { key => value } } }
+      def form_response
+        inspection = find_scoped_inspection
+        authorize inspection, :save_form?
+        resp = inspection.inspection_form_response ||
+               inspection.build_inspection_form_response(organization: current_organization)
+        resp.update!(responses: form_response_params[:responses] || {})
+        render json: { data: InspectionFormResponseSerializer.call(resp) }
+      end
+
       private
 
       def find_scoped_inspection
@@ -69,6 +140,14 @@ module Api
 
       def inspection_params
         params.require(:inspection).permit(:inspector_id, :scheduled_at)
+      end
+
+      def photo_params
+        params.require(:photo).permit(:filename, :content_type)
+      end
+
+      def form_response_params
+        params.require(:form_response).permit(responses: {})
       end
 
       def parse_scheduled_at!(str)

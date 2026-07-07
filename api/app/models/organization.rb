@@ -10,6 +10,9 @@ class Organization < ApplicationRecord
   has_many :inspection_type_configs, dependent: :restrict_with_exception
   has_many :inspection_requests, dependent: :restrict_with_exception
   has_many :inspections, dependent: :restrict_with_exception
+  has_many :inspection_form_templates, dependent: :restrict_with_exception
+  has_many :inspection_photos, dependent: :restrict_with_exception
+  has_many :inspection_form_responses, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true

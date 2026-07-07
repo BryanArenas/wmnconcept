@@ -28,6 +28,8 @@ class Inspection < ApplicationRecord
   belongs_to :office, optional: true
 
   has_many :inspection_events, dependent: :destroy
+  has_many :inspection_photos, dependent: :destroy
+  has_one  :inspection_form_response, dependent: :destroy
 
   enum :inspection_type, INSPECTION_TYPES.index_with(&:itself), validate: true
 
@@ -165,10 +167,22 @@ class Inspection < ApplicationRecord
   def scheduled_at_present?       = scheduled_at.present?
   def rejection_note_present?     = rejection_note.present?
 
-  # Evidence gate for `submit` (spec §6): ≥1 photo and all required form fields.
-  # The capture tables (inspection_photos, inspection_form_responses) land in M5;
-  # until then this is false so no inspection reaches review without evidence.
-  def ready_for_review? = false
+  # Evidence gate for `submit` (spec §6): ≥1 confirmed photo AND all required
+  # template fields answered. If no template exists for this type, only photos
+  # are required (template is optional at the org level until configured).
+  def ready_for_review?
+    return false unless inspection_photos.uploaded.exists?
+
+    template = organization.inspection_form_templates
+                           .active
+                           .find_by(inspection_type:)
+    return true if template.nil?
+
+    form_resp = inspection_form_response
+    return false if form_resp.nil?
+
+    form_resp.complete?(template)
+  end
 
   private
 

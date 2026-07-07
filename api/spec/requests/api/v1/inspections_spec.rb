@@ -289,4 +289,192 @@ RSpec.describe "API V1 Inspections", type: :request do
       expect(response.parsed_body.dig("error", "code")).to eq("invalid_transition")
     end
   end
+
+  # --- M5 Field capture -------------------------------------------------------
+
+  describe "GET /api/v1/inspections/:id/form_template" do
+    it "returns the form template for the inspection type (happy path)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      create(:inspection_form_template, organization: org, inspection_type: "wind_mitigation")
+      sign_in_via_omniauth(inspector)
+
+      get "/api/v1/inspections/#{inspection.id}/form_template"
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body.dig("data", "inspection_type")).to eq("wind_mitigation")
+      expect(body.dig("data", "schema", "fields")).to be_an(Array)
+    end
+
+    it "returns 401 for unauthenticated request" do
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+
+      get "/api/v1/inspections/#{inspection.id}/form_template"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "returns 404 when no template is configured for the type" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      sign_in_via_omniauth(inspector)
+
+      get "/api/v1/inspections/#{inspection.id}/form_template"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "POST /api/v1/inspections/:id/photos" do
+    it "creates a pending photo and returns a presigned URL (happy path)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      sign_in_via_omniauth(inspector)
+
+      post "/api/v1/inspections/#{inspection.id}/photos",
+           params: { photo: { filename: "roof.jpg", content_type: "image/jpeg" } }
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body
+      expect(body.dig("data", "upload_state")).to eq("pending")
+      expect(body["presigned_url"]).to be_present
+    end
+
+    it "returns 401 for unauthenticated request" do
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+
+      post "/api/v1/inspections/#{inspection.id}/photos",
+           params: { photo: { filename: "roof.jpg", content_type: "image/jpeg" } }
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "returns 403 for agency user" do
+      agency_user = create(:agency_user, organization: org, agency: create(:agency, organization: org))
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+      sign_in_via_omniauth(agency_user)
+
+      post "/api/v1/inspections/#{inspection.id}/photos",
+           params: { photo: { filename: "roof.jpg", content_type: "image/jpeg" } }
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "PATCH /api/v1/inspections/:id/photos/:photo_id/confirm" do
+    it "marks the photo as uploaded (happy path)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      photo = create(:inspection_photo, organization: org, inspection: inspection)
+      sign_in_via_omniauth(inspector)
+
+      patch "/api/v1/inspections/#{inspection.id}/photos/#{photo.id}/confirm"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("data", "upload_state")).to eq("uploaded")
+    end
+
+    it "returns 401 for unauthenticated request" do
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+      photo = create(:inspection_photo, organization: org, inspection: inspection)
+
+      patch "/api/v1/inspections/#{inspection.id}/photos/#{photo.id}/confirm"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
+  describe "PUT /api/v1/inspections/:id/form_response" do
+    it "upserts form answers (happy path)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      sign_in_via_omniauth(inspector)
+
+      put "/api/v1/inspections/#{inspection.id}/form_response",
+          params: { form_response: { responses: { "roof_cover_type" => "shingle" } } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("data", "responses", "roof_cover_type")).to eq("shingle")
+    end
+
+    it "overwrites existing responses on second PUT" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      create(:inspection_form_response, organization: org, inspection: inspection,
+                                        responses: { "old_key" => "old_val" })
+      sign_in_via_omniauth(inspector)
+
+      put "/api/v1/inspections/#{inspection.id}/form_response",
+          params: { form_response: { responses: { "new_key" => "new_val" } } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("data", "responses")).to eq("new_key" => "new_val")
+    end
+
+    it "returns 401 for unauthenticated request" do
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+
+      put "/api/v1/inspections/#{inspection.id}/form_response",
+          params: { form_response: { responses: {} } }
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
+  describe "POST /api/v1/inspections/:id/submit" do
+    it "transitions in_progress → submitted_for_review when evidence is complete (happy path)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      # Evidence gate: ≥1 uploaded photo; no template → no form requirement.
+      create(:inspection_photo, :uploaded, organization: org, inspection: inspection)
+      sign_in_via_omniauth(inspector)
+
+      post "/api/v1/inspections/#{inspection.id}/submit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig("data", "status")).to eq("submitted_for_review")
+    end
+
+    it "returns 422 when evidence gate fails (no uploaded photo)" do
+      inspector = create(:user, :inspector, organization: org)
+      agency    = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency,
+                                                      assigned_inspector: inspector)
+      sign_in_via_omniauth(inspector)
+
+      post "/api/v1/inspections/#{inspection.id}/submit"
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body.dig("error", "code")).to eq("invalid_transition")
+    end
+
+    it "returns 401 for unauthenticated request" do
+      agency = create(:agency, organization: org)
+      inspection = create(:inspection, :in_progress, organization: org, agency: agency)
+
+      post "/api/v1/inspections/#{inspection.id}/submit"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
 end

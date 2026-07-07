@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_070006) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_081826) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -78,6 +78,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_070006) do
     t.index ["inspection_id", "occurred_at"], name: "index_inspection_events_on_inspection_id_and_occurred_at"
     t.index ["inspection_id"], name: "index_inspection_events_on_inspection_id"
     t.index ["organization_id"], name: "index_inspection_events_on_organization_id"
+  end
+
+  create_table "inspection_form_responses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "inspection_id", null: false
+    t.uuid "organization_id", null: false
+    t.jsonb "responses", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["inspection_id"], name: "index_inspection_form_responses_on_inspection_id", unique: true
+    t.index ["organization_id"], name: "index_inspection_form_responses_on_organization_id"
+  end
+
+  create_table "inspection_form_templates", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "inspection_type", null: false
+    t.uuid "organization_id", null: false
+    t.integer "position", default: 0, null: false
+    t.jsonb "schema", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "inspection_type"], name: "index_form_templates_on_org_and_type", unique: true
+    t.index ["organization_id", "position"], name: "index_form_templates_on_org_and_position"
+    t.index ["organization_id"], name: "index_inspection_form_templates_on_organization_id"
+  end
+
+  create_table "inspection_photos", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename"
+    t.uuid "inspection_id", null: false
+    t.uuid "organization_id", null: false
+    t.string "s3_key", null: false
+    t.datetime "updated_at", null: false
+    t.string "upload_state", default: "pending", null: false
+    t.index ["inspection_id", "upload_state"], name: "index_inspection_photos_on_inspection_and_state"
+    t.index ["inspection_id"], name: "index_inspection_photos_on_inspection_id"
+    t.index ["organization_id"], name: "index_inspection_photos_on_organization_id"
+    t.index ["s3_key"], name: "index_inspection_photos_on_s3_key", unique: true
+    t.check_constraint "upload_state::text = ANY (ARRAY['pending'::character varying, 'uploaded'::character varying]::text[])", name: "inspection_photos_upload_state_check"
   end
 
   create_table "inspection_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

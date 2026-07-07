@@ -99,7 +99,71 @@ inspection_type_configs.each_with_index do |attrs, i|
   end
 end
 
+# Form templates (§11 PLACEHOLDER). Schema fields will be replaced by the
+# certified OIR-B1-1802 field list when it arrives. Each type gets a minimal
+# placeholder so DynamicFormRenderer has something to render in dev.
+form_templates = {
+  "wind_mitigation" => [
+    { key: "roof_cover_type", label: "Roof cover type", type: "select", required: true,
+      options: %w[shingle tile metal flat other] },
+    { key: "roof_deck_attachment", label: "Roof deck attachment", type: "select", required: true,
+      options: %w[A B C D] },
+    { key: "roof_to_wall_connection", label: "Roof-to-wall connection", type: "select", required: true,
+      options: ["Toe nails", "Clips", "Single wraps", "Double wraps", "Structural"] },
+    { key: "opening_protection", label: "Opening protection", type: "select", required: true,
+      options: ["None", "Basic", "Hurricane", "Impact"] },
+    { key: "notes", label: "Additional notes", type: "text", required: false }
+  ],
+  "four_point" => [
+    { key: "roof_age_years", label: "Roof age (years)", type: "number", required: true },
+    { key: "hvac_age_years", label: "HVAC age (years)", type: "number", required: true },
+    { key: "electrical_panel_type", label: "Electrical panel type", type: "text", required: true },
+    { key: "plumbing_type", label: "Plumbing type", type: "select", required: true,
+      options: %w[Copper PVC Galvanized CPVC Other] },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ],
+  "roof_condition" => [
+    { key: "roof_material", label: "Roof material", type: "select", required: true,
+      options: %w[Shingle Tile Metal Flat Other] },
+    { key: "roof_age_years", label: "Estimated age (years)", type: "number", required: true },
+    { key: "condition_rating", label: "Condition rating", type: "select", required: true,
+      options: %w[Poor Fair Good Excellent] },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ],
+  "general_home" => [
+    { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "foundation_type", label: "Foundation type", type: "select", required: true,
+      options: ["Slab", "Crawl space", "Basement", "Piers"] },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ],
+  "hoa_master_wind" => [
+    { key: "building_count", label: "Building count", type: "number", required: true },
+    { key: "construction_type", label: "Construction type", type: "text", required: true },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ],
+  "wind_type_ii" => [
+    { key: "opening_protection", label: "Opening protection", type: "select", required: true,
+      options: ["None", "Basic", "Hurricane", "Impact"] },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ],
+  "wind_type_iii" => [
+    { key: "opening_protection", label: "Opening protection", type: "select", required: true,
+      options: ["None", "Basic", "Hurricane", "Impact"] },
+    { key: "compliance_level", label: "Compliance level", type: "text", required: true },
+    { key: "notes", label: "Notes", type: "text", required: false }
+  ]
+}
+
+form_templates.each_with_index do |(itype, fields), i|
+  organization.inspection_form_templates.find_or_create_by!(inspection_type: itype) do |t|
+    t.schema = { "fields" => fields.map(&:stringify_keys) }
+    t.active = true
+    t.position = i
+  end
+end
+
 puts "Seeded organization=#{organization.name} offices=#{organization.offices.count} " \
      "users=#{organization.users.count} agencies=#{organization.agencies.count} " \
      "agency_users=#{organization.agency_users.count} " \
-     "inspection_type_configs=#{organization.inspection_type_configs.count}"
+     "inspection_type_configs=#{organization.inspection_type_configs.count} " \
+     "form_templates=#{organization.inspection_form_templates.count}"

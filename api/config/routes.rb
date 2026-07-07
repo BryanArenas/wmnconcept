@@ -28,10 +28,17 @@ Rails.application.routes.draw do
       end
       resources :inspections, only: %i[index show] do
         member do
-          post :assign
-          post :schedule
-          post :start
-          post :cancel
+          post   :assign
+          post   :schedule
+          post   :start
+          post   :cancel
+          post   :submit
+          # Field capture (M5)
+          get    :form_template
+          get    :photos, to: "inspections#photos_index"
+          post   :photos, to: "inspections#photos_create"
+          patch  "photos/:photo_id/confirm", to: "inspections#confirm_photo"
+          put    :form_response
         end
       end
 

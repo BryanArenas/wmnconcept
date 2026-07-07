@@ -20,6 +20,22 @@ class InspectionPolicy < ApplicationPolicy
       (user.inspector? && record.assigned_inspector_id == user.id)
   end
 
+  # Field capture (M5): inspector on the assignment or staff with elevated access.
+  def upload_photo?    = field_actor?
+  def confirm_photo?   = field_actor?
+  def show_form?       = field_actor?
+  def save_form?       = field_actor?
+  def submit?          = field_actor?
+
+  private
+
+  def field_actor?
+    return false if user.agency?
+
+    user.org_admin? || user.coordinator? ||
+      (user.inspector? && record.assigned_inspector_id == user.id)
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       base = super  # organization_id floor
