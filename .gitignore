@@ -1,0 +1,18 @@
+# Monorepo root ignores. Each app (api/, web/) carries its own .gitignore for
+# language-specific artifacts.
+
+# OS / editor cruft.
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Local env files anywhere.
+.env
+.env.local
+.env.*.local
+
+# Logs.
+*.log

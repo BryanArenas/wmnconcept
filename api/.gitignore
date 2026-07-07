@@ -1,0 +1,34 @@
+# See https://help.github.com/articles/ignoring-files for more about ignoring files.
+
+# Dependencies (bundled into vendor/bundle for this environment).
+/.bundle
+/vendor/bundle
+
+# Logs and temp.
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/tmp/pids/*
+!/tmp/pids/
+!/tmp/pids/.keep
+
+# Storage (Active Storage local disk, uploaded files).
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/
+!/tmp/storage/.keep
+
+# Secrets and local env (Appendix A vars). Never commit real credentials.
+/.env
+/.env.*
+!/.env.example
+/config/master.key
+/config/credentials/*.key
+
+# Ignore assets build output.
+/public/assets
+
+# Editor / OS.
+.byebug_history
