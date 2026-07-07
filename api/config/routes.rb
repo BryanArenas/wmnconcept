@@ -26,7 +26,17 @@ Rails.application.routes.draw do
           post :decline
         end
       end
-      resources :inspections, only: %i[index show]
+      resources :inspections, only: %i[index show] do
+        member do
+          post :assign
+          post :schedule
+          post :start
+          post :cancel
+        end
+      end
+
+      # Staff roster for dispatch inspector dropdown (spec §8.8, M4).
+      resources :users, only: %i[index]
     end
   end
 end

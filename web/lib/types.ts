@@ -66,6 +66,14 @@ export interface Agency {
   active: boolean;
 }
 
+// A lightweight staff member record (for dispatch inspector dropdown, etc.)
+export interface StaffUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
+
 // M3 — inspection intake + triage
 
 export interface InspectionTypeConfig {
@@ -104,5 +112,29 @@ export interface InspectionRequest {
   agency_name: string;
   property: PropertySnippet;
   homeowner: HomeownerSnippet;
+  created_at: string;
+}
+
+// M4 — dispatch + calendar (mirrors InspectionSerializer)
+export interface Inspection {
+  id: string;
+  status: InspectionStatus;
+  inspection_type: string;
+  price_cents: number;
+  agency_id: string;
+  agency_name: string;
+  property_id: string;
+  property_address: string;
+  homeowner_id: string;
+  homeowner_name: string;
+  inspection_request_id: string;
+  assigned_inspector_id: string | null;
+  assigned_inspector_name: string | null;
+  scheduled_at: string | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  delivered_at: string | null;
+  rejection_note: string | null;
   created_at: string;
 }

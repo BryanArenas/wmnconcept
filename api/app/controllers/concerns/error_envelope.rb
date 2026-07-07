@@ -10,6 +10,7 @@ module ErrorEnvelope
     rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
     rescue_from ActionController::InvalidAuthenticityToken, with: :render_invalid_csrf
     rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
+    rescue_from AASM::InvalidTransition, with: :render_aasm_invalid_transition
   end
 
   # Render the canonical error envelope. `details` is always an array so clients
@@ -48,5 +49,9 @@ module ErrorEnvelope
 
   def render_forbidden(error)
     render_error(code: "forbidden", message: "You are not allowed to do that", status: :forbidden)
+  end
+
+  def render_aasm_invalid_transition(error)
+    render_error(code: "invalid_transition", message: error.message, status: :unprocessable_content)
   end
 end
