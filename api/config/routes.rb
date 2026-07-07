@@ -12,6 +12,11 @@ Rails.application.routes.draw do
       get    "health",  to: "health#show"
       get    "me",      to: "me#show"
       delete "session", to: "sessions#destroy"
+
+      # Agencies & partner logins (spec §4, §12 M2). org_admin-gated via Pundit.
+      resources :agencies, only: %i[index create] do
+        resources :agency_users, only: %i[create]
+      end
     end
   end
 end

@@ -1,7 +1,8 @@
-# Session-based auth over the shared HTTPOnly cookie (spec §10). The signed-in
-# user id lives in the session; role is derived from that record, never from a
-# client-supplied value or switcher (spec §13). Access the session via
-# `request.session` so the concern works cleanly in API-only controllers.
+# Session-based auth over the shared HTTPOnly cookie (spec §10). The principal
+# is a staff User or an AgencyUser — separate surfaces that never share auth
+# (spec §2). Role is derived from the principal record, never from client input
+# or a switcher (spec §13). Access the session via `request.session` so this
+# works cleanly in API-only controllers.
 module Authentication
   extend ActiveSupport::Concern
 
@@ -17,12 +18,25 @@ module Authentication
     end
   end
 
+  def current_agency_user
+    return @current_agency_user if defined?(@current_agency_user)
+
+    @current_agency_user = if (id = request.session[:agency_user_id])
+      AgencyUser.active.find_by(id: id)
+    end
+  end
+
+  # The authenticated actor for this request, whichever surface they came from.
+  def current_principal
+    current_user || current_agency_user
+  end
+
   def current_organization
-    current_user&.organization || resolve_organization
+    current_principal&.organization || resolve_organization
   end
 
   def signed_in?
-    current_user.present?
+    current_principal.present?
   end
 
   # Guard for protected actions. Renders the 401 envelope and halts.
@@ -32,16 +46,29 @@ module Authentication
     render_error(code: "unauthorized", message: "Authentication required", status: :unauthorized)
   end
 
-  def sign_in(user)
+  def sign_in(principal)
     request.reset_session # rotate session id on privilege change (fixation defense)
-    request.session[:user_id] = user.id
-    @current_user = user
-    Current.user = user
+
+    case principal
+    when User
+      request.session[:user_id] = principal.id
+      @current_user = principal
+      @current_agency_user = nil
+    when AgencyUser
+      request.session[:agency_user_id] = principal.id
+      @current_agency_user = principal
+      @current_user = nil
+    else
+      raise ArgumentError, "unknown principal: #{principal.class}"
+    end
+
+    Current.principal = principal
   end
 
   def sign_out
     @current_user = nil
-    Current.user = nil
+    @current_agency_user = nil
+    Current.principal = nil
     request.reset_session
   end
 
@@ -51,7 +78,7 @@ module Authentication
     Current.request_id = request.request_id
     Current.user_agent = request.user_agent
     Current.ip_address = request.remote_ip
-    Current.user = current_user
+    Current.principal = current_principal
   end
 
   # Single tenant at launch: resolve the org by request subdomain, else fall

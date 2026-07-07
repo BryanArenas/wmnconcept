@@ -5,7 +5,7 @@ module Api
     # identity and gate role layouts.
     class MeController < BaseController
       def show
-        render json: { data: UserSerializer.call(current_user) }
+        render json: { data: PrincipalSerializer.call(current_principal) }
       end
     end
   end

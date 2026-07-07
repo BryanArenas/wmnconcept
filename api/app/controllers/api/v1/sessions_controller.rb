@@ -14,11 +14,15 @@ module Api
         auth = request.env["omniauth.auth"]
         return redirect_to_login(error: "auth_failed") if auth.blank?
 
-        user = User.from_omniauth(auth, organization: resolve_organization)
+        organization = resolve_organization
+        # Staff and agency identities live in separate tables (spec §2); resolve
+        # staff first, then partner logins.
+        principal = User.from_omniauth(auth, organization: organization) ||
+                    AgencyUser.from_omniauth(auth, organization: organization)
 
-        if user
-          sign_in(user)
-          redirect_to frontend_url(dashboard_path_for(user)), allow_other_host: true
+        if principal
+          sign_in(principal)
+          redirect_to frontend_url(home_path_for(principal)), allow_other_host: true
         else
           # Authenticated with the provider, but not a provisioned WMN account.
           redirect_to_login(error: "not_authorized")
@@ -42,10 +46,12 @@ module Api
         redirect_to frontend_url("/login?error=#{error}"), allow_other_host: true
       end
 
-      # Staff land in the staff shell, inspectors in the field shell. Agency
-      # users (M2) will resolve to the agency shell.
-      def dashboard_path_for(user)
-        user.inspector? ? "/today" : "/dashboard"
+      # Route each principal to its surface: agency users to the partner portal,
+      # inspectors to the field shell, other staff to the staff shell.
+      def home_path_for(principal)
+        return "/agency/dashboard" if principal.agency?
+
+        principal.inspector? ? "/today" : "/dashboard"
       end
 
       def frontend_url(path = "")

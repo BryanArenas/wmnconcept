@@ -3,6 +3,8 @@
 class Organization < ApplicationRecord
   has_many :offices, dependent: :restrict_with_exception
   has_many :users, dependent: :restrict_with_exception
+  has_many :agencies, dependent: :restrict_with_exception
+  has_many :agency_users, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true

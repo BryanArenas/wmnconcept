@@ -7,6 +7,12 @@ class ApplicationController < ActionController::API
   include ErrorEnvelope
   include Authentication
   include CursorPagination
+  include Pundit::Authorization
+
+  # Pundit authorizes the current principal (staff User or AgencyUser).
+  def pundit_user
+    current_principal
+  end
 
   # CSRF is enforced whenever forgery protection is active. The Next client
   # reads the token from the non-HTTPOnly XSRF-TOKEN cookie and echoes it back

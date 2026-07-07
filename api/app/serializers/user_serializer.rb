@@ -9,6 +9,7 @@ module UserSerializer
     return nil unless user
 
     {
+      type: "staff",
       id: user.id,
       name: user.name,
       email: user.email,

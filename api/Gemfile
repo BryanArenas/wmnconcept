@@ -38,6 +38,10 @@ gem "omniauth-google-oauth2"
 gem "omniauth-github"
 gem "omniauth-rails_csrf_protection"
 
+# Authorization: Pundit policies + tenancy scopes (spec §2, §12 M2). Tenancy is
+# enforced through policy scopes, never a bare default_scope (spec §0).
+gem "pundit", "~> 2.4"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

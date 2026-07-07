@@ -21,8 +21,13 @@ class User < ApplicationRecord
 
   scope :active, -> { where(active: true) }
 
-  # Staff who quality-gate reports; drives Pundit role checks in later milestones.
-  def staff?
+  # Principal interface (mirrors AgencyUser) so Pundit policies treat either
+  # actor uniformly. A staff user is never an agency principal.
+  def agency? = false
+
+  # Org-wide-visibility staff: the staff portal (spec §2). Inspectors are the
+  # field surface and are scoped to their own assignments, not org-wide.
+  def office_staff?
     org_admin? || coordinator? || manager?
   end
 

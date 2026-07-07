@@ -9,6 +9,7 @@ module ErrorEnvelope
     rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
     rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
     rescue_from ActionController::InvalidAuthenticityToken, with: :render_invalid_csrf
+    rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
   end
 
   # Render the canonical error envelope. `details` is always an array so clients
@@ -43,5 +44,9 @@ module ErrorEnvelope
 
   def render_invalid_csrf(error)
     render_error(code: "invalid_csrf_token", message: "Invalid or missing CSRF token", status: :forbidden)
+  end
+
+  def render_forbidden(error)
+    render_error(code: "forbidden", message: "You are not allowed to do that", status: :forbidden)
   end
 end

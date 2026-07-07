@@ -15,9 +15,15 @@ module OmniAuthSpecHelper
     auth
   end
 
-  def sign_in_via_omniauth(user, provider: :google_oauth2, uid: "provider-uid-123")
-    mock_omniauth(provider: provider, uid: uid, email: user.email, name: user.name)
-    get "/auth/#{provider}/callback"
+  # Sign in any principal (staff User or AgencyUser). The uid derives from the
+  # email so signing in different principals within one example never collides
+  # on a shared uid. The request host is set to the principal's org subdomain so
+  # the callback resolves the right tenant regardless of creation order.
+  def sign_in_via_omniauth(principal, provider: :google_oauth2, uid: nil)
+    uid ||= "uid-#{principal.email}"
+    mock_omniauth(provider: provider, uid: uid, email: principal.email, name: principal.name)
+    host = "#{principal.organization.subdomain}.example.com"
+    get "/auth/#{provider}/callback", headers: { "HOST" => host }
   end
 end
 

@@ -1,11 +1,12 @@
-# Request-scoped identity + tenant. Set once per request in the controller from
-# the session; read by controllers/policies. Tenancy is enforced by explicit
-# scoping (query objects / Pundit scopes), NOT a bare default_scope (spec §0).
+# Request-scoped principal + tenant. The principal is either a staff User or an
+# AgencyUser (separate surfaces, spec §2). Set once per request from the session;
+# read by controllers/policies. Tenancy is enforced by explicit Pundit scoping,
+# NOT a bare default_scope (spec §0).
 class Current < ActiveSupport::CurrentAttributes
-  attribute :user, :organization, :request_id, :user_agent, :ip_address
+  attribute :principal, :organization, :request_id, :user_agent, :ip_address
 
-  def user=(user)
+  def principal=(principal)
     super
-    self.organization = user&.organization
+    self.organization = principal&.organization
   end
 end

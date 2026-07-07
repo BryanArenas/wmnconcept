@@ -46,4 +46,37 @@ staff.each do |attrs|
   end
 end
 
-puts "Seeded organization=#{organization.name} offices=#{organization.offices.count} users=#{organization.users.count}"
+# Referral partners (M2) + one partner login each, so the agency portal and the
+# staff Agencies screen have data to render.
+agencies = [
+  {
+    name: "Gulf Coast Insurance", type: "insurance", billing_mode: "fixed_rate",
+    primary_contact_email: "ops@gulfcoast.example", phone: "239-555-0200",
+    contact: { name: "Pat Partner", email: "pat@gulfcoast.example" }
+  },
+  {
+    name: "Bayfront Realty", type: "real_estate", billing_mode: "commission",
+    commission_rate: 0.15, primary_contact_email: "deals@bayfront.example", phone: "239-555-0210",
+    contact: { name: "Riley Realtor", email: "riley@bayfront.example" }
+  }
+]
+
+agencies.each do |attrs|
+  contact = attrs.delete(:contact)
+  agency = organization.agencies.find_or_create_by!(name: attrs[:name]) do |a|
+    a.type = attrs[:type]
+    a.billing_mode = attrs[:billing_mode]
+    a.commission_rate = attrs[:commission_rate]
+    a.primary_contact_email = attrs[:primary_contact_email]
+    a.phone = attrs[:phone]
+  end
+
+  agency.agency_users.find_or_create_by!(email: contact[:email]) do |u|
+    u.organization = organization
+    u.name = contact[:name]
+  end
+end
+
+puts "Seeded organization=#{organization.name} offices=#{organization.offices.count} " \
+     "users=#{organization.users.count} agencies=#{organization.agencies.count} " \
+     "agency_users=#{organization.agency_users.count}"
