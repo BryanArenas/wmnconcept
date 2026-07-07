@@ -35,6 +35,10 @@ end
 RSpec.configure do |config|
   # Fixtures are forbidden (CLAUDE.md) — FactoryBot only.
 
+  # ActiveJob helpers (perform_enqueued_jobs, assert_enqueued_with) for asserting
+  # the §9 job side effects fired by §6 transitions.
+  config.include ActiveJob::TestHelper
+
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, remove the following line or assign false
   # instead of true.

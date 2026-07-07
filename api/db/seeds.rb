@@ -77,6 +77,29 @@ agencies.each do |attrs|
   end
 end
 
+# Inspection prices (spec §11) live HERE as data, never baked into code, so they
+# swap on receipt of the price sheet. These are PLACEHOLDERs — only
+# wind_mitigation ($175) is confirmed. Prices are in cents.
+inspection_type_configs = [
+  { inspection_type: "wind_mitigation", label: "Wind Mitigation", price_cents: 17_500 },
+  { inspection_type: "four_point",      label: "4-Point",          price_cents: 12_500 },
+  { inspection_type: "roof_condition",  label: "Roof Condition",   price_cents: 15_000 },
+  { inspection_type: "general_home",    label: "General Home",     price_cents: 35_000 },
+  { inspection_type: "hoa_master_wind", label: "HOA Master Wind",  price_cents: 45_000 },
+  { inspection_type: "wind_type_ii",    label: "Wind Type II",     price_cents: 22_500 },
+  { inspection_type: "wind_type_iii",   label: "Wind Type III",    price_cents: 27_500 }
+]
+
+inspection_type_configs.each_with_index do |attrs, i|
+  organization.inspection_type_configs.find_or_create_by!(inspection_type: attrs[:inspection_type]) do |c|
+    c.label = attrs[:label]
+    c.price_cents = attrs[:price_cents]
+    c.position = i
+    c.active = true
+  end
+end
+
 puts "Seeded organization=#{organization.name} offices=#{organization.offices.count} " \
      "users=#{organization.users.count} agencies=#{organization.agencies.count} " \
-     "agency_users=#{organization.agency_users.count}"
+     "agency_users=#{organization.agency_users.count} " \
+     "inspection_type_configs=#{organization.inspection_type_configs.count}"

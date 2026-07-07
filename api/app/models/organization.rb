@@ -5,6 +5,11 @@ class Organization < ApplicationRecord
   has_many :users, dependent: :restrict_with_exception
   has_many :agencies, dependent: :restrict_with_exception
   has_many :agency_users, dependent: :restrict_with_exception
+  has_many :properties, dependent: :restrict_with_exception
+  has_many :homeowners, dependent: :restrict_with_exception
+  has_many :inspection_type_configs, dependent: :restrict_with_exception
+  has_many :inspection_requests, dependent: :restrict_with_exception
+  has_many :inspections, dependent: :restrict_with_exception
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
