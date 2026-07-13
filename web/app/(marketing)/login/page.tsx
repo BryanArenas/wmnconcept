@@ -1,5 +1,6 @@
 import { BrandMark } from "@/components/domain/brand-mark";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoginForm } from "./login-form";
 import { LoginButtons } from "./login-buttons";
 
 const ERROR_COPY: Record<string, string> = {
@@ -9,8 +10,6 @@ const ERROR_COPY: Record<string, string> = {
   invalid_credentials: "Sign-in didn't complete. Please try again.",
 };
 
-// Login entry (§10). No AppShell — a bare, centered card. Reads ?error= set by
-// the Rails callback when auth is refused.
 export default async function LoginPage({
   searchParams,
 }: {
@@ -39,7 +38,7 @@ export default async function LoginPage({
             <div className="flex flex-col gap-1">
               <h1 className="font-serif text-display-md">Sign in</h1>
               <p className="text-body text-muted-foreground">
-                Staff and partner agencies sign in with Google or GitHub.
+                Sign in with your email or use a provider below.
               </p>
             </div>
 
@@ -51,6 +50,17 @@ export default async function LoginPage({
                 {message}
               </p>
             )}
+
+            <LoginForm />
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
 
             <LoginButtons />
           </CardContent>

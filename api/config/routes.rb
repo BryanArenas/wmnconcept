@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       get    "health",  to: "health#show"
       get    "me",      to: "me#show"
+      post   "session", to: "sessions#login"
       delete "session", to: "sessions#destroy"
 
       # Agencies & partner logins (spec §4, §12 M2). org_admin-gated via Pundit.

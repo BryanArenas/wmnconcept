@@ -3,6 +3,8 @@
 # sees their own agency's inspections/reports/invoices — enforced by Pundit
 # scopes, never a bare default_scope.
 class AgencyUser < ApplicationRecord
+  has_secure_password validations: false
+
   belongs_to :organization
   belongs_to :agency
 

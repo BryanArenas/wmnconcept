@@ -1,0 +1,6 @@
+class AddPasswordDigestToUsersAndAgencyUsers < ActiveRecord::Migration[8.1]
+  def change
+    add_column :users, :password_digest, :string
+    add_column :agency_users, :password_digest, :string
+  end
+end

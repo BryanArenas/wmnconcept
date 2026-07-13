@@ -37,13 +37,15 @@ staff = [
 ]
 
 staff.each do |attrs|
-  organization.users.find_or_create_by!(email: attrs[:email]) do |u|
+  user = organization.users.find_or_create_by!(email: attrs[:email]) do |u|
     u.name = attrs[:name]
     u.role = attrs[:role]
     u.office = attrs[:office]
     u.license_number = attrs[:license_number]
     u.active = true
+    u.password = "password123"
   end
+  user.update!(password: "password123") if user.password_digest.blank?
 end
 
 # Referral partners (M2) + one partner login each, so the agency portal and the
@@ -71,10 +73,12 @@ agencies.each do |attrs|
     a.phone = attrs[:phone]
   end
 
-  agency.agency_users.find_or_create_by!(email: contact[:email]) do |u|
+  au = agency.agency_users.find_or_create_by!(email: contact[:email]) do |u|
     u.organization = organization
     u.name = contact[:name]
+    u.password = "password123"
   end
+  au.update!(password: "password123") if au.password_digest.blank?
 end
 
 # Inspection prices — Florida fair-market averages (2024–2025). Prices in cents.

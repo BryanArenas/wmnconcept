@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_13_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -43,6 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_120000) do
     t.string "omniauth_provider"
     t.string "omniauth_uid"
     t.uuid "organization_id", null: false
+    t.string "password_digest"
     t.datetime "updated_at", null: false
     t.index ["agency_id"], name: "index_agency_users_on_agency_id"
     t.index ["omniauth_provider", "omniauth_uid"], name: "index_agency_users_on_omniauth_identity", unique: true, where: "(omniauth_uid IS NOT NULL)"
@@ -298,6 +299,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_120000) do
     t.string "omniauth_provider"
     t.string "omniauth_uid"
     t.uuid "organization_id", null: false
+    t.string "password_digest"
     t.string "role", null: false
     t.datetime "updated_at", null: false
     t.index ["office_id"], name: "index_users_on_office_id"

@@ -1,22 +1,14 @@
 module Api
   module V1
-    # OmniAuth callback + logout. The browser initiates login on the Next side
-    # (POST /auth/:provider), the provider redirects back to
-    # GET /auth/:provider/callback → #create, and we set the shared-cookie
-    # session then redirect the browser back into the app (spec §10).
     class SessionsController < ApplicationController
-      # The OAuth callback is protected by OmniAuth's own state parameter, and
-      # #failure is provider-driven — neither carries our CSRF token.
       skip_forgery_protection only: %i[create failure]
 
-      # GET/POST /auth/:provider/callback
+      # GET/POST /auth/:provider/callback — OmniAuth flow
       def create
         auth = request.env["omniauth.auth"]
         return redirect_to_login(error: "auth_failed") if auth.blank?
 
         organization = resolve_organization
-        # Staff and agency identities live in separate tables (spec §2); resolve
-        # staff first, then partner logins.
         principal = User.from_omniauth(auth, organization: organization) ||
                     AgencyUser.from_omniauth(auth, organization: organization)
 
@@ -24,30 +16,61 @@ module Api
           sign_in(principal)
           redirect_to frontend_url(home_path_for(principal)), allow_other_host: true
         else
-          # Authenticated with the provider, but not a provisioned WMN account.
           redirect_to_login(error: "not_authorized")
         end
       end
 
-      # DELETE /api/v1/session — idempotent logout.
+      # POST /api/v1/session — email + password login
+      def login
+        email = params[:email].to_s.strip.downcase
+        password = params[:password].to_s
+
+        if email.blank? || password.blank?
+          return render_error(code: "invalid_credentials",
+                              message: "Email and password are required",
+                              status: :unauthorized)
+        end
+
+        organization = resolve_organization
+        principal = authenticate_by_password(email, password, organization)
+
+        if principal
+          sign_in(principal)
+          render json: { redirect_to: home_path_for(principal) }
+        else
+          render_error(code: "invalid_credentials",
+                       message: "Invalid email or password",
+                       status: :unauthorized)
+        end
+      end
+
+      # DELETE /api/v1/session
       def destroy
         sign_out
         head :no_content
       end
 
-      # OmniAuth on_failure target (bad config, denied consent, etc.).
+      # OmniAuth on_failure target
       def failure
         redirect_to_login(error: params[:message].presence || "auth_failed")
       end
 
       private
 
+      def authenticate_by_password(email, password, organization)
+        user = User.active.find_by(organization_id: organization.id, email: email)
+        return user if user&.password_digest.present? && user.authenticate(password)
+
+        agency_user = AgencyUser.active.find_by(organization_id: organization.id, email: email)
+        return agency_user if agency_user&.password_digest.present? && agency_user.authenticate(password)
+
+        nil
+      end
+
       def redirect_to_login(error:)
         redirect_to frontend_url("/login?error=#{error}"), allow_other_host: true
       end
 
-      # Route each principal to its surface: agency users to the partner portal,
-      # inspectors to the field shell, other staff to the staff shell.
       def home_path_for(principal)
         return "/agency/dashboard" if principal.agency?
 

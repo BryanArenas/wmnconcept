@@ -2,6 +2,8 @@
 # auth and staff auth never share a surface. Role comes from this record /
 # the session — never a client-side switcher (spec §13).
 class User < ApplicationRecord
+  has_secure_password validations: false
+
   belongs_to :organization
   belongs_to :office, optional: true
 
