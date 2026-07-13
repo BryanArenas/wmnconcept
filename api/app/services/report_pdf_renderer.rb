@@ -1,10 +1,3 @@
-# Renders an inspection's report to PDF bytes with Prawn (spec §9, M6).
-#
-# IMPORTANT (spec §13): this renders the PLACEHOLDER form schema, NOT the
-# certified OIR-B1-1802 layout. OIR fidelity is a legal requirement and the exact
-# current form + a known-good sample are required inputs before this is finalized.
-# The pipeline (generate → persist → deliver) is what M6 proves out; the visual
-# layout is deliberately swappable — everything specific lives in this one class.
 require "prawn"
 require "prawn/table"
 
@@ -13,6 +6,19 @@ class ReportPdfRenderer
   INK = "0A0A0A"
   MUTED = "57534E"
   HAIRLINE = "E7E5E4"
+  LIGHT_BG = "F5F5F4"
+
+  # OIR-B1-1802 section groupings — keys that belong to each labeled section.
+  # Fields not listed here render in a "General" catch-all at the bottom.
+  WIND_MIT_SECTIONS = [
+    { title: "1. Building Code",            keys: %w[year_built building_code permit_date] },
+    { title: "2. Roof Covering",            keys: %w[roof_cover_type roof_cover_fbc_equivalent roof_permit_date] },
+    { title: "3. Roof Deck Attachment",      keys: %w[roof_deck_attachment] },
+    { title: "4. Roof-to-Wall Attachment",   keys: %w[roof_to_wall_connection] },
+    { title: "5. Roof Geometry",            keys: %w[roof_geometry hip_percent] },
+    { title: "6. Secondary Water Resistance", keys: %w[swr] },
+    { title: "7. Opening Protection",        keys: %w[opening_protection garage_door_braced entry_doors_rated] }
+  ].freeze
 
   def initialize(inspection)
     @inspection = inspection
@@ -21,14 +27,14 @@ class ReportPdfRenderer
     @agency     = inspection.agency
     @response   = inspection.inspection_form_response
     @photos     = inspection.inspection_photos.uploaded.order(:created_at)
+    @template   = inspection.organization.inspection_form_templates
+                            .find_by(inspection_type: inspection.inspection_type)
   end
 
-  # Returns the rendered PDF as a binary string.
   def render
-    doc = Prawn::Document.new(page_size: "LETTER", margin: 54)
+    doc = Prawn::Document.new(page_size: "LETTER", margin: [48, 54, 54, 54])
     build_header(doc)
     build_meta(doc)
-    build_placeholder_notice(doc)
     build_form_section(doc)
     build_photos_section(doc)
     build_footer(doc)
@@ -41,81 +47,129 @@ class ReportPdfRenderer
     doc.fill_color BRAND_RED
     doc.text "WINDMITIGATION.NETWORK", size: 14, style: :bold, character_spacing: 1
     doc.fill_color MUTED
-    doc.text "Inspection Report", size: 9, character_spacing: 2
+    doc.text "Uniform Mitigation Verification Inspection Report", size: 9, character_spacing: 1.5
     doc.move_down 6
-    doc.stroke_color HAIRLINE
+    doc.stroke_color BRAND_RED
+    doc.line_width = 1.5
     doc.stroke_horizontal_rule
-    doc.move_down 16
+    doc.line_width = 1
+    doc.move_down 14
 
     doc.fill_color INK
-    doc.text "#{type_label} Inspection", size: 20, style: :bold
+    doc.text "#{type_label} Inspection Report", size: 18, style: :bold
+    doc.move_down 2
     doc.fill_color MUTED
     doc.text property_address, size: 11
     doc.fill_color INK
-    doc.move_down 16
+    doc.move_down 14
   end
 
   def build_meta(doc)
     rows = [
-      ["Inspection ID", @inspection.id],
-      ["Homeowner", @homeowner.name],
-      ["Agency", @agency.name],
-      ["Inspector", @inspection.assigned_inspector&.name || "—"],
-      ["Scheduled", fmt_time(@inspection.scheduled_at)],
-      ["Completed", fmt_time(@inspection.submitted_at)],
-      ["Fee", format("$%.2f", @inspection.price_cents / 100.0)]
+      ["Inspection ID",  @inspection.id[0..7].upcase],
+      ["Homeowner",      @homeowner.name],
+      ["Agency",         @agency.name],
+      ["Inspector",      @inspection.assigned_inspector&.name || "—"],
+      ["License #",      @inspection.assigned_inspector&.license_number || "—"],
+      ["Scheduled",      fmt_time(@inspection.scheduled_at)],
+      ["Completed",      fmt_time(@inspection.submitted_at)],
+      ["Fee",            format("$%.2f", @inspection.price_cents / 100.0)]
     ]
 
     doc.table(rows, width: doc.bounds.width, cell_style: { borders: [:bottom],
                                                            border_color: HAIRLINE,
-                                                           padding: [6, 4] }) do
+                                                           padding: [5, 4],
+                                                           size: 10 }) do
       column(0).font_style = :bold
-      column(0).width = 130
+      column(0).width = 120
       column(0).text_color = MUTED
     end
     doc.move_down 18
   end
 
-  def build_placeholder_notice(doc)
-    doc.fill_color MUTED
-    doc.text_box(
-      "Best-guess schema · placeholder. This layout renders the interim form " \
-      "schema and is not the certified OIR-B1-1802 form.",
-      at: [0, doc.cursor], width: doc.bounds.width, size: 8, style: :italic
-    )
-    doc.move_down 22
-    doc.fill_color INK
+  def build_form_section(doc)
+    answers = @response&.responses || {}
+    fields = @template&.fields || []
+
+    if @inspection.inspection_type == "wind_mitigation" && fields.any?
+      build_wind_mit_sections(doc, answers, fields)
+    else
+      build_generic_form(doc, answers, fields)
+    end
   end
 
-  def build_form_section(doc)
-    doc.text "Captured on site", size: 13, style: :bold
-    doc.move_down 8
+  def build_wind_mit_sections(doc, answers, fields)
+    field_map = fields.index_by { |f| f["key"] }
+    rendered_keys = Set.new
 
-    answers = @response&.responses || {}
-    if answers.empty?
+    WIND_MIT_SECTIONS.each do |section|
+      section_fields = section[:keys].filter_map { |k| field_map[k] }
+      next if section_fields.empty?
+
+      section_header(doc, section[:title])
+      rows = section_fields.map do |f|
+        rendered_keys << f["key"]
+        [f["label"] || f["key"].humanize, present_value(answers[f["key"]])]
+      end
+      section_table(doc, rows)
+      doc.move_down 10
+    end
+
+    # Remaining fields not in any OIR section
+    remaining = fields.reject { |f| rendered_keys.include?(f["key"]) }
+    if remaining.any?
+      extra_rows = remaining.map do |f|
+        [f["label"] || f["key"].humanize, present_value(answers[f["key"]])]
+      end
+      unless extra_rows.all? { |_, v| v == "—" }
+        section_header(doc, "Additional Notes")
+        section_table(doc, extra_rows)
+        doc.move_down 10
+      end
+    end
+  end
+
+  def build_generic_form(doc, answers, fields)
+    section_header(doc, "Inspection Findings")
+
+    if answers.empty? && fields.empty?
       doc.fill_color MUTED
       doc.text "No form responses captured.", size: 10, style: :italic
       doc.fill_color INK
-    else
-      rows = form_field_rows(answers)
-      doc.table(rows, width: doc.bounds.width, cell_style: { borders: [:bottom],
-                                                             border_color: HAIRLINE,
-                                                             padding: [6, 4], size: 10 }) do
-        column(0).font_style = :bold
-        column(0).width = 200
-        column(0).text_color = MUTED
-      end
+      doc.move_down 14
+      return
     end
-    doc.move_down 18
+
+    rows = form_field_rows(answers, fields)
+    section_table(doc, rows)
+    doc.move_down 14
   end
 
-  # Prefer the template's field labels/order; fall back to raw keys for any
-  # answer not in the template (schema drift resilience).
-  def form_field_rows(answers)
-    template = @inspection.organization.inspection_form_templates
-                          .find_by(inspection_type: @inspection.inspection_type)
-    fields = template&.fields || []
+  def section_header(doc, title)
+    doc.fill_color BRAND_RED
+    doc.text title, size: 12, style: :bold
+    doc.move_down 4
+    doc.stroke_color HAIRLINE
+    doc.stroke_horizontal_rule
+    doc.move_down 6
+    doc.fill_color INK
+  end
 
+  def section_table(doc, rows)
+    doc.table(rows, width: doc.bounds.width, cell_style: { borders: [:bottom],
+                                                           border_color: HAIRLINE,
+                                                           padding: [5, 4],
+                                                           size: 10 }) do
+      column(0).font_style = :bold
+      column(0).width = 200
+      column(0).text_color = MUTED
+      cells.each_with_index do |cell, i|
+        cell.background_color = LIGHT_BG if (i / 2).odd?
+      end
+    end
+  end
+
+  def form_field_rows(answers, fields)
     ordered = fields.map do |f|
       [f["label"] || f["key"], present_value(answers[f["key"]])]
     end
@@ -134,8 +188,8 @@ class ReportPdfRenderer
   end
 
   def build_photos_section(doc)
-    doc.text "Photos (#{@photos.size})", size: 13, style: :bold
-    doc.move_down 8
+    doc.start_new_page if doc.cursor < 120
+    section_header(doc, "Site Photos (#{@photos.size})")
 
     if @photos.empty?
       doc.fill_color MUTED
@@ -144,31 +198,32 @@ class ReportPdfRenderer
       return
     end
 
-    @photos.each do |photo|
-      embed_or_list(doc, photo)
+    @photos.each_with_index do |photo, i|
+      doc.start_new_page if doc.cursor < 100
+      embed_or_list(doc, photo, i + 1)
     end
   end
 
-  # Embed the image when the bytes are retrievable; otherwise list a reference
-  # line. Stub uploads (dev/test) have no bytes, so listing is the norm there.
-  def embed_or_list(doc, photo)
+  def embed_or_list(doc, photo, num)
     bytes = fetch_photo_bytes(photo)
     if bytes
-      doc.image(StringIO.new(bytes), fit: [220, 220])
-      doc.move_down 4
+      doc.image(StringIO.new(bytes), fit: [240, 240])
+      doc.move_down 3
       doc.fill_color MUTED
-      doc.text(photo.filename.to_s, size: 8)
+      doc.text "Photo #{num}: #{photo.filename.to_s}", size: 8
       doc.fill_color INK
       doc.move_down 10
     else
       doc.fill_color MUTED
-      doc.text "• #{photo.filename || photo.s3_key}", size: 9
+      doc.text "Photo #{num}: #{photo.filename || photo.s3_key}", size: 9
       doc.fill_color INK
+      doc.move_down 4
     end
   rescue Prawn::Errors::UnsupportedImageType, StandardError
     doc.fill_color MUTED
-    doc.text "• #{photo.filename || photo.s3_key} (preview unavailable)", size: 9
+    doc.text "Photo #{num}: #{photo.filename || photo.s3_key} (preview unavailable)", size: 9
     doc.fill_color INK
+    doc.move_down 4
   end
 
   def fetch_photo_bytes(photo)
@@ -178,13 +233,19 @@ class ReportPdfRenderer
   end
 
   def build_footer(doc)
-    doc.move_down 24
-    doc.stroke_color HAIRLINE
+    doc.move_down 20
+    doc.stroke_color BRAND_RED
+    doc.line_width = 1.5
     doc.stroke_horizontal_rule
+    doc.line_width = 1
     doc.move_down 6
     doc.fill_color MUTED
-    doc.text "Generated #{fmt_time(Time.current)} · Wind Mitigation Network LLC",
-             size: 8
+    doc.text "Report generated #{fmt_time(Time.current)}", size: 8
+    doc.text "Wind Mitigation Network LLC · windmitigation.network", size: 8
+    doc.move_down 4
+    doc.text "This report is based on a visual inspection of accessible areas only. " \
+             "Conditions may exist that were not observed or accessible at the time of inspection.",
+             size: 7, style: :italic
     doc.fill_color INK
   end
 

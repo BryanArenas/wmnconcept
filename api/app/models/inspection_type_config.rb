@@ -6,7 +6,7 @@
 class InspectionTypeConfig < ApplicationRecord
   INSPECTION_TYPES = %w[
     wind_mitigation four_point roof_condition general_home
-    hoa_master_wind wind_type_ii wind_type_iii
+    wind_four_combo hoa_master_wind commercial_wind
   ].freeze
 
   belongs_to :organization

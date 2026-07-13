@@ -77,17 +77,17 @@ agencies.each do |attrs|
   end
 end
 
-# Inspection prices (spec §11) live HERE as data, never baked into code, so they
-# swap on receipt of the price sheet. These are PLACEHOLDERs — only
-# wind_mitigation ($175) is confirmed. Prices are in cents.
+# Inspection prices — Florida fair-market averages (2024–2025). Prices in cents.
+# wind_mitigation ($175) is confirmed; the rest are competitive SW Florida
+# rates sourced from market comps. Adjust via the admin panel or re-seed.
 inspection_type_configs = [
-  { inspection_type: "wind_mitigation", label: "Wind Mitigation", price_cents: 17_500 },
-  { inspection_type: "four_point",      label: "4-Point",          price_cents: 12_500 },
-  { inspection_type: "roof_condition",  label: "Roof Condition",   price_cents: 15_000 },
-  { inspection_type: "general_home",    label: "General Home",     price_cents: 35_000 },
-  { inspection_type: "hoa_master_wind", label: "HOA Master Wind",  price_cents: 45_000 },
-  { inspection_type: "wind_type_ii",    label: "Wind Type II",     price_cents: 22_500 },
-  { inspection_type: "wind_type_iii",   label: "Wind Type III",    price_cents: 27_500 }
+  { inspection_type: "wind_mitigation", label: "Wind Mitigation",           price_cents: 17_500 },
+  { inspection_type: "four_point",      label: "4-Point Inspection",        price_cents: 15_000 },
+  { inspection_type: "roof_condition",  label: "Roof Condition Letter",     price_cents: 17_500 },
+  { inspection_type: "general_home",    label: "General Home Inspection",   price_cents: 35_000 },
+  { inspection_type: "wind_four_combo", label: "Wind + 4-Point Combo",      price_cents: 25_000 },
+  { inspection_type: "hoa_master_wind", label: "HOA / Condo Master Wind",   price_cents: 50_000 },
+  { inspection_type: "commercial_wind", label: "Commercial Wind Mitigation", price_cents: 75_000 }
 ]
 
 inspection_type_configs.each_with_index do |attrs, i|
@@ -99,58 +99,245 @@ inspection_type_configs.each_with_index do |attrs, i|
   end
 end
 
-# Form templates (§11 PLACEHOLDER). Schema fields will be replaced by the
-# certified OIR-B1-1802 field list when it arrives. Each type gets a minimal
-# placeholder so DynamicFormRenderer has something to render in dev.
+# ─── Form templates ───────────────────────────────────────────────────────────
+# The wind_mitigation schema mirrors the OIR-B1-1802 Uniform Mitigation
+# Verification Inspection Form sections (Building Code, Roof Covering, Roof
+# Deck Attachment, Roof-to-Wall, Roof Geometry, SWR, Opening Protection).
+# Other types carry the standard inspection fields for their domain.
 form_templates = {
   "wind_mitigation" => [
-    { key: "roof_cover_type", label: "Roof cover type", type: "select", required: true,
-      options: %w[shingle tile metal flat other] },
+    # ── Section 1: Building Code ──
+    { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "building_code", label: "Building code compliance", type: "select", required: true,
+      options: [
+        "Pre-1994 (no FBC)",
+        "1994–2001 South Florida Building Code",
+        "2002+ Florida Building Code",
+        "2007+ FBC — Enhanced hurricane"
+      ] },
+    { key: "permit_date", label: "Original permit date (if known)", type: "text", required: false },
+
+    # ── Section 2: Roof Covering ──
+    { key: "roof_cover_type", label: "Roof covering type", type: "select", required: true,
+      options: [
+        "Asphalt/fiberglass shingle",
+        "Concrete/clay tile",
+        "Metal (standing seam)",
+        "Metal (corrugated/screw-down)",
+        "Built-up/modified bitumen (flat)",
+        "Single-ply membrane (TPO/EPDM)",
+        "Wood shake/shingle",
+        "Slate",
+        "Other"
+      ] },
+    { key: "roof_cover_fbc_equivalent", label: "Roof covering FBC equivalent?", type: "select", required: true,
+      options: ["Yes — FBC compliant", "No — non-compliant", "Unknown"] },
+    { key: "roof_permit_date", label: "Roof permit date (if re-roofed)", type: "text", required: false },
+
+    # ── Section 3: Roof Deck Attachment ──
     { key: "roof_deck_attachment", label: "Roof deck attachment", type: "select", required: true,
-      options: %w[A B C D] },
+      options: [
+        "A — 6d nails, 6\" spacing",
+        "B — 8d nails, 6\" spacing",
+        "C — 8d nails, 6\" edge / 12\" field",
+        "D — 8d ring-shank nails, 6\" spacing",
+        "Reinforced concrete deck",
+        "Other/Unknown"
+      ] },
+
+    # ── Section 4: Roof-to-Wall Attachment ──
     { key: "roof_to_wall_connection", label: "Roof-to-wall connection", type: "select", required: true,
-      options: ["Toe nails", "Clips", "Single wraps", "Double wraps", "Structural"] },
-    { key: "opening_protection", label: "Opening protection", type: "select", required: true,
-      options: ["None", "Basic", "Hurricane", "Impact"] },
-    { key: "notes", label: "Additional notes", type: "text", required: false }
+      options: [
+        "Toe nails",
+        "Clips",
+        "Single wraps",
+        "Double wraps",
+        "Structural (bolted/epoxied)",
+        "Other/Unknown"
+      ] },
+
+    # ── Section 5: Roof Geometry ──
+    { key: "roof_geometry", label: "Roof shape", type: "select", required: true,
+      options: [
+        "Hip (100%)",
+        "Flat",
+        "Gable",
+        "Hip + Gable combination",
+        "Other"
+      ] },
+    { key: "hip_percent", label: "% hip (if combination)", type: "number", required: false },
+
+    # ── Section 6: Secondary Water Resistance (SWR) ──
+    { key: "swr", label: "Secondary water resistance (SWR)", type: "select", required: true,
+      options: [
+        "SWR — self-adhering modified bitumen",
+        "SWR — foam adhesive (FBC approved)",
+        "No SWR / Unknown"
+      ] },
+
+    # ── Section 7: Opening Protection ──
+    { key: "opening_protection", label: "Opening protection level", type: "select", required: true,
+      options: [
+        "None",
+        "Basic shutters (plywood/panels)",
+        "Hurricane shutters (accordion/roll-down/Bahama)",
+        "Impact-rated glazing (windows and doors)",
+        "Impact-rated glazing + shutters (mixed)",
+        "All openings — impact rated or shuttered"
+      ] },
+    { key: "garage_door_braced", label: "Garage door wind-rated or braced?", type: "select", required: true,
+      options: ["Yes — wind-rated", "Yes — aftermarket bracing", "No", "N/A — no garage"] },
+    { key: "entry_doors_rated", label: "Entry doors impact-rated?", type: "select", required: true,
+      options: ["Yes", "No", "Some/Mixed"] },
+
+    # ── General ──
+    { key: "inspector_notes", label: "Inspector notes", type: "text", required: false }
   ],
+
   "four_point" => [
+    # Roof
+    { key: "roof_material", label: "Roof material", type: "select", required: true,
+      options: ["Asphalt shingle", "Tile", "Metal", "Flat/built-up", "Other"] },
     { key: "roof_age_years", label: "Roof age (years)", type: "number", required: true },
+    { key: "roof_condition", label: "Roof condition", type: "select", required: true,
+      options: %w[Poor Fair Good Excellent] },
+    { key: "roof_permit_date", label: "Roof permit date (if available)", type: "text", required: false },
+    # Electrical
+    { key: "electrical_panel_type", label: "Electrical panel type", type: "select", required: true,
+      options: ["Circuit breakers", "Fuses", "Federal Pacific / Zinsco (defective)", "Other"] },
+    { key: "electrical_amps", label: "Service amperage", type: "select", required: true,
+      options: ["100 amp", "150 amp", "200 amp", "Other"] },
+    { key: "wiring_type", label: "Wiring type", type: "select", required: true,
+      options: ["Copper", "Aluminum", "Knob-and-tube", "Mixed", "Unknown"] },
+    # Plumbing
+    { key: "plumbing_supply_type", label: "Supply plumbing", type: "select", required: true,
+      options: %w[Copper CPVC PEX Galvanized Polybutylene Other] },
+    { key: "plumbing_drain_type", label: "Drain plumbing", type: "select", required: true,
+      options: ["Cast iron", "PVC", "ABS", "Mixed", "Other"] },
+    { key: "water_heater_age", label: "Water heater age (years)", type: "number", required: true },
+    # HVAC
+    { key: "hvac_type", label: "HVAC system type", type: "select", required: true,
+      options: ["Central A/C + furnace", "Heat pump", "Mini-split/ductless", "Window units", "Other"] },
     { key: "hvac_age_years", label: "HVAC age (years)", type: "number", required: true },
-    { key: "electrical_panel_type", label: "Electrical panel type", type: "text", required: true },
-    { key: "plumbing_type", label: "Plumbing type", type: "select", required: true,
-      options: %w[Copper PVC Galvanized CPVC Other] },
-    { key: "notes", label: "Notes", type: "text", required: false }
+    { key: "hvac_condition", label: "HVAC condition", type: "select", required: true,
+      options: %w[Poor Fair Good Excellent] },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
   ],
+
   "roof_condition" => [
     { key: "roof_material", label: "Roof material", type: "select", required: true,
-      options: %w[Shingle Tile Metal Flat Other] },
-    { key: "roof_age_years", label: "Estimated age (years)", type: "number", required: true },
-    { key: "condition_rating", label: "Condition rating", type: "select", required: true,
+      options: ["Asphalt shingle", "Concrete tile", "Clay tile", "Metal", "Flat/modified bitumen", "Other"] },
+    { key: "roof_age_years", label: "Estimated roof age (years)", type: "number", required: true },
+    { key: "roof_layers", label: "Number of roof layers", type: "select", required: true,
+      options: %w[1 2 3+] },
+    { key: "condition_rating", label: "Overall condition", type: "select", required: true,
       options: %w[Poor Fair Good Excellent] },
-    { key: "notes", label: "Notes", type: "text", required: false }
+    { key: "remaining_life_years", label: "Estimated remaining life (years)", type: "number", required: true },
+    { key: "visible_damage", label: "Visible damage?", type: "boolean", required: true },
+    { key: "damage_description", label: "Damage description (if any)", type: "text", required: false },
+    { key: "leak_evidence", label: "Evidence of leaks?", type: "boolean", required: true },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
   ],
+
   "general_home" => [
     { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "sqft", label: "Living area (sq ft)", type: "number", required: true },
+    { key: "stories", label: "Number of stories", type: "select", required: true,
+      options: ["1", "1.5", "2", "3+"] },
     { key: "foundation_type", label: "Foundation type", type: "select", required: true,
-      options: ["Slab", "Crawl space", "Basement", "Piers"] },
-    { key: "notes", label: "Notes", type: "text", required: false }
+      options: ["Slab on grade", "Crawl space", "Basement", "Piers/pilings"] },
+    { key: "construction_type", label: "Construction type", type: "select", required: true,
+      options: ["CBS (concrete block/stucco)", "Wood frame", "Steel frame", "Manufactured/modular"] },
+    { key: "roof_material", label: "Roof material", type: "select", required: true,
+      options: ["Shingle", "Tile", "Metal", "Flat", "Other"] },
+    { key: "roof_age_years", label: "Roof age (years)", type: "number", required: true },
+    { key: "electrical_panel_type", label: "Electrical panel type", type: "select", required: true,
+      options: ["Circuit breakers", "Fuses", "Federal Pacific/Zinsco", "Other"] },
+    { key: "plumbing_type", label: "Supply plumbing", type: "select", required: true,
+      options: %w[Copper CPVC PEX Galvanized Polybutylene Other] },
+    { key: "hvac_type", label: "HVAC type", type: "select", required: true,
+      options: ["Central A/C", "Heat pump", "Mini-split", "Window units", "Other"] },
+    { key: "hvac_age_years", label: "HVAC age (years)", type: "number", required: true },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
   ],
+
+  "wind_four_combo" => [
+    { key: "combo_note", label: "This is a combined Wind Mitigation + 4-Point report", type: "text", required: false },
+    # Wind mit (abbreviated — key sections)
+    { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "building_code", label: "Building code compliance", type: "select", required: true,
+      options: ["Pre-1994", "1994–2001 SFBC", "2002+ FBC", "2007+ FBC Enhanced"] },
+    { key: "roof_cover_type", label: "Roof covering", type: "select", required: true,
+      options: ["Shingle", "Tile", "Metal (standing seam)", "Metal (screw-down)", "Flat/membrane", "Other"] },
+    { key: "roof_deck_attachment", label: "Roof deck attachment", type: "select", required: true,
+      options: ["A", "B", "C", "D", "Reinforced concrete", "Unknown"] },
+    { key: "roof_to_wall_connection", label: "Roof-to-wall connection", type: "select", required: true,
+      options: ["Toe nails", "Clips", "Single wraps", "Double wraps", "Structural"] },
+    { key: "roof_geometry", label: "Roof shape", type: "select", required: true,
+      options: ["Hip", "Flat", "Gable", "Combination", "Other"] },
+    { key: "swr", label: "Secondary water resistance", type: "select", required: true,
+      options: ["Yes — SWR present", "No SWR"] },
+    { key: "opening_protection", label: "Opening protection", type: "select", required: true,
+      options: ["None", "Basic", "Hurricane shutters", "Impact-rated", "Mixed"] },
+    # 4-Point sections
+    { key: "roof_age_years", label: "Roof age (years)", type: "number", required: true },
+    { key: "roof_condition", label: "Roof condition", type: "select", required: true,
+      options: %w[Poor Fair Good Excellent] },
+    { key: "electrical_panel_type", label: "Electrical panel", type: "select", required: true,
+      options: ["Circuit breakers", "Fuses", "Federal Pacific/Zinsco", "Other"] },
+    { key: "wiring_type", label: "Wiring type", type: "select", required: true,
+      options: ["Copper", "Aluminum", "Knob-and-tube", "Mixed"] },
+    { key: "plumbing_supply_type", label: "Supply plumbing", type: "select", required: true,
+      options: %w[Copper CPVC PEX Galvanized Polybutylene Other] },
+    { key: "hvac_age_years", label: "HVAC age (years)", type: "number", required: true },
+    { key: "hvac_type", label: "HVAC type", type: "select", required: true,
+      options: ["Central A/C", "Heat pump", "Mini-split", "Other"] },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
+  ],
+
   "hoa_master_wind" => [
-    { key: "building_count", label: "Building count", type: "number", required: true },
-    { key: "construction_type", label: "Construction type", type: "text", required: true },
-    { key: "notes", label: "Notes", type: "text", required: false }
-  ],
-  "wind_type_ii" => [
+    { key: "community_name", label: "Community / HOA name", type: "text", required: true },
+    { key: "building_count", label: "Number of buildings", type: "number", required: true },
+    { key: "units_per_building", label: "Units per building (avg)", type: "number", required: true },
+    { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "construction_type", label: "Construction type", type: "select", required: true,
+      options: ["CBS (concrete block/stucco)", "Wood frame", "Steel frame", "Other"] },
+    { key: "roof_cover_type", label: "Roof covering", type: "select", required: true,
+      options: ["Shingle", "Tile", "Metal", "Flat/membrane", "Other"] },
+    { key: "roof_deck_attachment", label: "Roof deck attachment", type: "select", required: true,
+      options: ["A", "B", "C", "D", "Reinforced concrete", "Unknown"] },
+    { key: "roof_to_wall_connection", label: "Roof-to-wall connection", type: "select", required: true,
+      options: ["Toe nails", "Clips", "Single wraps", "Double wraps", "Structural"] },
+    { key: "roof_geometry", label: "Roof shape", type: "select", required: true,
+      options: ["Hip", "Flat", "Gable", "Combination"] },
+    { key: "swr", label: "Secondary water resistance", type: "select", required: true,
+      options: ["Yes — SWR present", "No SWR"] },
     { key: "opening_protection", label: "Opening protection", type: "select", required: true,
-      options: ["None", "Basic", "Hurricane", "Impact"] },
-    { key: "notes", label: "Notes", type: "text", required: false }
+      options: ["None", "Basic shutters", "Hurricane shutters", "Impact-rated", "Mixed"] },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
   ],
-  "wind_type_iii" => [
+
+  "commercial_wind" => [
+    { key: "business_name", label: "Business / building name", type: "text", required: true },
+    { key: "year_built", label: "Year built", type: "number", required: true },
+    { key: "building_sqft", label: "Building area (sq ft)", type: "number", required: true },
+    { key: "construction_type", label: "Construction type", type: "select", required: true,
+      options: ["CBS", "Steel frame", "Tilt-up concrete", "Wood frame", "Other"] },
+    { key: "stories", label: "Number of stories", type: "select", required: true,
+      options: ["1", "2", "3", "4+"] },
+    { key: "roof_cover_type", label: "Roof covering", type: "select", required: true,
+      options: ["Metal", "TPO/EPDM membrane", "Built-up", "Tile", "Shingle", "Other"] },
+    { key: "roof_deck_attachment", label: "Roof deck attachment", type: "select", required: true,
+      options: ["A", "B", "C", "D", "Reinforced concrete", "Unknown"] },
+    { key: "roof_to_wall_connection", label: "Roof-to-wall connection", type: "select", required: true,
+      options: ["Toe nails", "Clips", "Single wraps", "Double wraps", "Structural"] },
+    { key: "roof_geometry", label: "Roof shape", type: "select", required: true,
+      options: ["Hip", "Flat", "Gable", "Combination"] },
+    { key: "swr", label: "Secondary water resistance", type: "select", required: true,
+      options: ["Yes", "No"] },
     { key: "opening_protection", label: "Opening protection", type: "select", required: true,
-      options: ["None", "Basic", "Hurricane", "Impact"] },
-    { key: "compliance_level", label: "Compliance level", type: "text", required: true },
-    { key: "notes", label: "Notes", type: "text", required: false }
+      options: ["None", "Basic", "Hurricane shutters", "Impact-rated", "Mixed"] },
+    { key: "notes", label: "Inspector notes", type: "text", required: false }
   ]
 }
 

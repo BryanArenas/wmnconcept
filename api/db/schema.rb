@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_084730) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_13_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -139,7 +139,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_084730) do
     t.index ["property_id"], name: "index_inspection_requests_on_property_id"
     t.index ["submitted_by_agency_user_id"], name: "index_inspection_requests_on_submitted_by_agency_user_id"
     t.check_constraint "array_length(requested_types, 1) >= 1", name: "inspection_requests_types_present_check"
-    t.check_constraint "requested_types <@ ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'hoa_master_wind'::character varying, 'wind_type_ii'::character varying, 'wind_type_iii'::character varying]", name: "inspection_requests_types_valid_check"
+    t.check_constraint "requested_types <@ ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'wind_four_combo'::character varying, 'hoa_master_wind'::character varying, 'commercial_wind'::character varying]", name: "inspection_requests_types_valid_check"
     t.check_constraint "status::text = ANY (ARRAY['submitted'::character varying, 'accepted'::character varying, 'declined'::character varying]::text[])", name: "inspection_requests_status_check"
   end
 
@@ -154,7 +154,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_084730) do
     t.datetime "updated_at", null: false
     t.index ["organization_id", "inspection_type"], name: "idx_on_organization_id_inspection_type_f0b851debb", unique: true
     t.index ["organization_id"], name: "index_inspection_type_configs_on_organization_id"
-    t.check_constraint "inspection_type::text = ANY (ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'hoa_master_wind'::character varying, 'wind_type_ii'::character varying, 'wind_type_iii'::character varying]::text[])", name: "inspection_type_configs_type_check"
+    t.check_constraint "inspection_type::text = ANY (ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'wind_four_combo'::character varying, 'hoa_master_wind'::character varying, 'commercial_wind'::character varying]::text[])", name: "inspection_type_configs_type_check"
     t.check_constraint "price_cents >= 0", name: "inspection_type_configs_price_nonneg_check"
   end
 
@@ -187,7 +187,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_084730) do
     t.index ["organization_id", "status"], name: "index_inspections_on_organization_id_and_status"
     t.index ["organization_id"], name: "index_inspections_on_organization_id"
     t.index ["property_id"], name: "index_inspections_on_property_id"
-    t.check_constraint "inspection_type::text = ANY (ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'hoa_master_wind'::character varying, 'wind_type_ii'::character varying, 'wind_type_iii'::character varying]::text[])", name: "inspections_type_check"
+    t.check_constraint "inspection_type::text = ANY (ARRAY['wind_mitigation'::character varying, 'four_point'::character varying, 'roof_condition'::character varying, 'general_home'::character varying, 'wind_four_combo'::character varying, 'hoa_master_wind'::character varying, 'commercial_wind'::character varying]::text[])", name: "inspections_type_check"
     t.check_constraint "price_cents >= 0", name: "inspections_price_nonneg_check"
     t.check_constraint "status::text = ANY (ARRAY['unassigned'::character varying, 'assigned'::character varying, 'scheduled'::character varying, 'in_progress'::character varying, 'submitted_for_review'::character varying, 'approved'::character varying, 'delivered'::character varying, 'rejected'::character varying, 'cancelled'::character varying]::text[])", name: "inspections_status_check"
   end
