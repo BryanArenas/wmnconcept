@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/domain/status-dot";
+import { InfoHint } from "@/components/ui/info-hint";
 import { ReportCard } from "@/components/domain/report-card";
 import { ReviewEvidenceSheet } from "@/components/domain/review-evidence-sheet";
 import {
@@ -168,19 +169,19 @@ function ReviewCard({
             <Button size="sm" variant="outline" onClick={onReject}>
               Reject
             </Button>
-            <Button size="sm" onClick={onApprove}>
-              <Send className="mr-1.5 h-3.5 w-3.5" />
-              Approve &amp; deliver
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="sm" onClick={onApprove}>
+                <Send className="mr-1.5 h-3.5 w-3.5" />
+                Approve &amp; deliver
+              </Button>
+              <InfoHint label="What approving does">
+                Approving generates the PDF, delivers it to the homeowner and agency,
+                and creates the invoice.
+              </InfoHint>
+            </div>
           </div>
         )}
       </div>
-      {!approved && (
-        <p className="border-t border-border px-5 py-3 text-label text-muted-foreground">
-          Click the property to review the inspector's photos and findings before
-          approving. Approving generates the PDF, delivers it, and creates the invoice.
-        </p>
-      )}
     </div>
   );
 }

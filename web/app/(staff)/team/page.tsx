@@ -30,7 +30,7 @@ export default async function TeamPage() {
       <PageHeader
         eyebrow="Organization"
         title="Team"
-        description="Invite inspectors and staff. New members set their own password from an invite link before their account activates."
+        description="Invite inspectors and staff to your organization."
       />
       <TeamTable initialMembers={result.data} allowedRoles={allowedRoles} />
     </div>

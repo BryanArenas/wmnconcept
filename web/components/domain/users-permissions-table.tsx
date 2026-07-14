@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Role, User } from "@/lib/types";
 
@@ -42,10 +43,13 @@ export function UsersPermissionsTable({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-body text-muted-foreground">
-        Change a member's role or deactivate their access. You can't change your own
-        role or status. Invite new members from the Team screen.
-      </p>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-title text-foreground">Members</h3>
+        <InfoHint label="About permissions">
+          Change a member's role or deactivate their access. You can't change your own
+          role or status. Invite new members from the Team screen.
+        </InfoHint>
+      </div>
 
       {error && (
         <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-label text-destructive">

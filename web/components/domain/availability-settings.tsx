@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { InfoHint } from "@/components/ui/info-hint";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { AvailabilityBlock } from "@/lib/types";
 
@@ -95,9 +96,13 @@ export function AvailabilitySettings() {
       <Card>
         <CardContent>
           <form onSubmit={addBlock} className="flex flex-col gap-4">
-            <p className="text-body text-muted-foreground">
-              Block out time you're unavailable so you aren't scheduled for inspections then.
-            </p>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-title text-foreground">Block out time</h3>
+              <InfoHint label="About availability">
+                Time you block here marks you unavailable, so you aren't scheduled for
+                inspections then.
+              </InfoHint>
+            </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
