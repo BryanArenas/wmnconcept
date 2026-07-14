@@ -1,21 +1,21 @@
-# Agencies are staff-managed. Per §8.9 MVP decision, management is org_admin
-# only. The scope still narrows an agency principal to its own agency so the
-# tenancy pattern is correct everywhere it's reused.
+# Agencies are staff-managed. Management is open to org_admin and coordinators
+# (day-to-day operations); the scope still narrows an agency principal to its
+# own agency so the tenancy pattern is correct everywhere it's reused.
 class AgencyPolicy < ApplicationPolicy
   def index?
-    user.org_admin?
+    provisioner?
   end
 
   def show?
-    user.org_admin? || owns_record?
+    provisioner? || owns_record?
   end
 
   def create?
-    user.org_admin?
+    provisioner?
   end
 
   def update?
-    user.org_admin?
+    provisioner?
   end
 
   class Scope < ApplicationPolicy::Scope
@@ -28,6 +28,13 @@ class AgencyPolicy < ApplicationPolicy
   end
 
   private
+
+  # Staff who may manage agencies: org admins and coordinators. Agency
+  # principals answer false to both role checks, but guard explicitly so intent
+  # is obvious and a future role rename can't silently open this up.
+  def provisioner?
+    !user.agency? && (user.org_admin? || user.coordinator?)
+  end
 
   def owns_record?
     user.agency? && user.agency_id == record.id

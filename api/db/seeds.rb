@@ -44,8 +44,12 @@ staff.each do |attrs|
     u.license_number = attrs[:license_number]
     u.active = true
     u.password = "password123"
+    u.confirmed_at = Time.current
   end
+  # Backfill for pre-existing rows: password + email confirmation so seeded
+  # accounts can sign in without going through the invite flow.
   user.update!(password: "password123") if user.password_digest.blank?
+  user.update!(confirmed_at: Time.current, active: true) if user.confirmed_at.blank?
 end
 
 # Referral partners (M2) + one partner login each, so the agency portal and the
@@ -77,8 +81,10 @@ agencies.each do |attrs|
     u.organization = organization
     u.name = contact[:name]
     u.password = "password123"
+    u.confirmed_at = Time.current
   end
   au.update!(password: "password123") if au.password_digest.blank?
+  au.update!(confirmed_at: Time.current, active: true) if au.confirmed_at.blank?
 end
 
 # Inspection prices — Florida fair-market averages (2024–2025). Prices in cents.

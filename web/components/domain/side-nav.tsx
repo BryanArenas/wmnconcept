@@ -12,6 +12,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,15 +33,17 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/requests", label: "Requests", icon: Inbox },
     { href: "/dispatch", label: "Dispatch", icon: SendHorizonal },
-    { href: "/agencies", label: "Agencies", icon: Building2 },
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
+    { href: "/agencies", label: "Agencies", icon: Building2 },
+    { href: "/team", label: "Team", icon: Users },
   ],
   coordinator: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/requests", label: "Requests", icon: Inbox },
     { href: "/dispatch", label: "Dispatch", icon: SendHorizonal },
-    { href: "/agencies", label: "Agencies", icon: Building2 },
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
+    { href: "/agencies", label: "Agencies", icon: Building2 },
+    { href: "/team", label: "Team", icon: Users },
   ],
   manager: [{ href: "/review", label: "Review queue", icon: ClipboardCheck }],
   inspector: [{ href: "/today", label: "Today", icon: ClipboardList }],

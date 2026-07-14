@@ -21,12 +21,17 @@ module Api
         authorize Agency
 
         agency = nil
+        invited = nil
         ActiveRecord::Base.transaction do
           agency = current_organization.agencies.create!(agency_params)
-          invite_first_agency_user!(agency)
+          invited = build_first_agency_user!(agency)
         end
 
-        render json: { data: AgencySerializer.call(agency) }, status: :created
+        # Send the invite (and mint its copyable link) after commit so a
+        # rolled-back agency never emails an activation link.
+        invite_url = invited && InvitationDispatcher.call(invited, inviter: current_user)
+
+        render json: { data: AgencySerializer.call(agency), invite_url: }, status: :created
       end
 
       private
@@ -38,7 +43,8 @@ module Api
       end
 
       # Optional: the create dialog may include a first agency user to invite.
-      def invite_first_agency_user!(agency)
+      # Returns the built (unconfirmed) agency user, or nil if none was supplied.
+      def build_first_agency_user!(agency)
         return unless params.key?(:agency_user)
 
         attrs = params.require(:agency_user).permit(:name, :email)

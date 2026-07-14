@@ -16,7 +16,9 @@ module Api
           **agency_user_params.to_h.symbolize_keys
         )
 
-        render json: { data: AgencyUserSerializer.call(agency_user) }, status: :created
+        invite_url = InvitationDispatcher.call(agency_user, inviter: current_user)
+
+        render json: { data: AgencyUserSerializer.call(agency_user), invite_url: }, status: :created
       end
 
       private

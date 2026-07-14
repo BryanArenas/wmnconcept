@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Agency } from "@/lib/types";
+import { InviteLinkBox } from "@/components/domain/invite-link-box";
 
 const schema = z
   .object({
@@ -73,6 +74,7 @@ interface Props {
 export function AddAgencyDialog({ onCreated }: Props) {
   const [open, setOpen] = React.useState(false);
   const [serverError, setServerError] = React.useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = React.useState<string | null>(null);
 
   const {
     register,
@@ -111,13 +113,21 @@ export function AddAgencyDialog({ onCreated }: Props) {
     }
 
     try {
-      const { data } = await apiFetch<{ data: Agency }>("/api/v1/agencies", {
+      const { data, invite_url } = await apiFetch<{
+        data: Agency;
+        invite_url: string | null;
+      }>("/api/v1/agencies", {
         method: "POST",
         body: JSON.stringify(body),
       });
       onCreated(data);
       reset();
-      setOpen(false);
+      if (invite_url) {
+        // Keep the dialog open to surface the partner's activation link.
+        setInviteUrl(invite_url);
+      } else {
+        setOpen(false);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         const fieldErrors = err.fieldErrors();
@@ -151,6 +161,7 @@ export function AddAgencyDialog({ onCreated }: Props) {
     if (!next) {
       reset();
       setServerError(null);
+      setInviteUrl(null);
     }
   }
 
@@ -165,9 +176,24 @@ export function AddAgencyDialog({ onCreated }: Props) {
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add agency</DialogTitle>
+          <DialogTitle>{inviteUrl ? "Agency created" : "Add agency"}</DialogTitle>
         </DialogHeader>
 
+        {inviteUrl ? (
+          <div className="flex flex-col gap-4">
+            <p className="text-body text-muted-foreground">
+              The agency is set up. Share the link below so their partner login
+              can set a password and activate.
+            </p>
+            <InviteLinkBox url={inviteUrl} />
+            <DialogFooter>
+              <Button type="button" onClick={() => handleOpenChange(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <>
         <form
           id="add-agency-form"
           onSubmit={handleSubmit(onSubmit)}
@@ -341,6 +367,8 @@ export function AddAgencyDialog({ onCreated }: Props) {
             {isSubmitting ? "Saving…" : "Add agency"}
           </Button>
         </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

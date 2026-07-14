@@ -16,6 +16,7 @@ module UserSerializer
       role: user.role,
       license_number: user.license_number,
       active: user.active,
+      pending_invitation: user.pending_invitation?,
       office: office_payload(user.office),
       organization: OrganizationSerializer.call(user.organization)
     }

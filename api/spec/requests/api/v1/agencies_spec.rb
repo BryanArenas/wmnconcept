@@ -19,9 +19,19 @@ RSpec.describe "API V1 Agencies", type: :request do
       expect(response.parsed_body["meta"]).to have_key("next_cursor")
     end
 
-    it "forbids non-admin staff (auth failure → 403)" do
+    it "allows a coordinator (agency management is admin + coordinator)" do
       coordinator = create(:user, :coordinator, organization: org)
+      create(:agency, organization: org, name: "Gulf Coast Insurance")
       sign_in_via_omniauth(coordinator)
+
+      get "/api/v1/agencies"
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "forbids a manager (auth failure → 403)" do
+      manager = create(:user, :manager, organization: org)
+      sign_in_via_omniauth(manager)
 
       get "/api/v1/agencies"
 
@@ -52,10 +62,14 @@ RSpec.describe "API V1 Agencies", type: :request do
 
       expect(response).to have_http_status(:created)
       expect(response.parsed_body.dig("data", "name")).to eq("Bayfront Realty")
+      # The invited partner gets an activation link surfaced to the admin.
+      expect(response.parsed_body["invite_url"]).to include("/accept-invite?")
 
       agency = Agency.find(response.parsed_body.dig("data", "id"))
       expect(agency.organization).to eq(org)
       expect(agency.agency_users.pluck(:email)).to eq(["riley@bayfront.example"])
+      # The partner login is provisioned unconfirmed — cannot sign in yet.
+      expect(agency.agency_users.first.pending_invitation?).to be(true)
     end
 
     it "rejects commission billing without a rate (edge → 422 envelope)" do
@@ -73,9 +87,21 @@ RSpec.describe "API V1 Agencies", type: :request do
       expect(Agency.count).to eq(0) # transaction rolled back
     end
 
-    it "forbids a coordinator from creating agencies" do
+    it "allows a coordinator to create agencies" do
       coordinator = create(:user, :coordinator, organization: org)
       sign_in_via_omniauth(coordinator)
+
+      post "/api/v1/agencies", params: {
+        agency: { name: "Coastal Realty", type: "real_estate", billing_mode: "fixed_rate" }
+      }
+
+      expect(response).to have_http_status(:created)
+      expect(Agency.count).to eq(1)
+    end
+
+    it "forbids a manager from creating agencies (auth failure → 403)" do
+      manager = create(:user, :manager, organization: org)
+      sign_in_via_omniauth(manager)
 
       post "/api/v1/agencies", params: { agency: { name: "Nope" } }
 

@@ -86,4 +86,8 @@ group :development, :test do
 
   # Load Appendix A env vars from .env in dev/test
   gem "dotenv-rails"
+
+  # Preview outbound mail (invites, invoices, reports) in the browser during
+  # local dev instead of needing a real SMTP/Postmark adapter.
+  gem "letter_opener", "~> 1.10"
 end

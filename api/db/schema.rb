@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_14_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -37,8 +37,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_140000) do
   create_table "agency_users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.uuid "agency_id", null: false
+    t.datetime "confirmed_at"
     t.datetime "created_at", null: false
     t.citext "email", null: false
+    t.datetime "invited_at"
     t.string "name", null: false
     t.string "omniauth_provider"
     t.string "omniauth_uid"
@@ -291,8 +293,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_140000) do
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "active", default: true, null: false
+    t.datetime "confirmed_at"
     t.datetime "created_at", null: false
     t.citext "email", null: false
+    t.datetime "invited_at"
     t.string "license_number"
     t.string "name", null: false
     t.bigint "office_id"

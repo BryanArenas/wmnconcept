@@ -14,6 +14,10 @@ Rails.application.routes.draw do
       post   "session", to: "sessions#login"
       delete "session", to: "sessions#destroy"
 
+      # Public invitation accept flow (email-confirmed account activation).
+      get  "invitations",        to: "invitations#show"
+      post "invitations/accept", to: "invitations#accept"
+
       # Agencies & partner logins (spec §4, §12 M2). org_admin-gated via Pundit.
       resources :agencies, only: %i[index create] do
         resources :agency_users, only: %i[create]
@@ -49,8 +53,9 @@ Rails.application.routes.draw do
         get "report/download", to: "reports#download"
       end
 
-      # Staff roster for dispatch inspector dropdown (spec §8.8, M4).
-      resources :users, only: %i[index]
+      # Staff roster for dispatch inspector dropdown (spec §8.8, M4) + staff
+      # provisioning (create invites a new inactive/unconfirmed member).
+      resources :users, only: %i[index create]
 
       # Billing surface (spec §4, §8.5, M7).
       resources :invoices, only: %i[index show] do

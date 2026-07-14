@@ -29,6 +29,7 @@ export interface User {
   role: Role;
   license_number: string | null;
   active: boolean;
+  pending_invitation?: boolean;
   office: Office | null;
   organization: Organization | null;
 }

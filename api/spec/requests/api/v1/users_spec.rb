@@ -46,5 +46,86 @@ RSpec.describe "API V1 Users", type: :request do
 
       expect(response).to have_http_status(:forbidden)
     end
+
+    it "includes pending (unconfirmed) invites when status=all" do
+      admin = create(:user, :org_admin, organization: org)
+      pending = create(:user, :inspector, organization: org, name: "Newbie",
+                                          active: false, confirmed_at: nil)
+      sign_in_via_omniauth(admin)
+
+      get "/api/v1/users", params: { status: "all" }
+
+      names = response.parsed_body["data"].map { |u| u["name"] }
+      expect(names).to include("Newbie")
+      pending_flags = response.parsed_body["data"].find { |u| u["id"] == pending.id }
+      expect(pending_flags["pending_invitation"]).to be(true)
+    end
+  end
+
+  describe "POST /api/v1/users" do
+    it "invites an inspector, created inactive/unconfirmed (happy path)" do
+      coordinator = create(:user, :coordinator, organization: org)
+      sign_in_via_omniauth(coordinator)
+
+      expect do
+        post "/api/v1/users", params: {
+          user: { name: "Ivan Inspector", email: "ivan@windmitigation.network",
+                  role: "inspector", license_number: "HI-55555" }
+        }
+      end.to change(User, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body
+      expect(body["invite_url"]).to include("/accept-invite?")
+      expect(body["pending_invitation"]).to be(true)
+
+      created = User.find_by(email: "ivan@windmitigation.network")
+      expect(created.active).to be(false)
+      expect(created.confirmed_at).to be_nil
+      expect(created.organization).to eq(org)
+    end
+
+    it "requires authentication" do
+      post "/api/v1/users", params: { user: { name: "X", email: "x@y.z", role: "inspector" } }
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "forbids a coordinator from provisioning an elevated role (edge → 403)" do
+      coordinator = create(:user, :coordinator, organization: org)
+      sign_in_via_omniauth(coordinator)
+
+      expect do
+        post "/api/v1/users", params: {
+          user: { name: "Sneaky", email: "sneaky@windmitigation.network", role: "org_admin" }
+        }
+      end.not_to change(User, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body.dig("error", "code")).to eq("forbidden_role")
+    end
+
+    it "lets an org_admin provision any role" do
+      admin = create(:user, :org_admin, organization: org)
+      sign_in_via_omniauth(admin)
+
+      post "/api/v1/users", params: {
+        user: { name: "New Manager", email: "mgr@windmitigation.network", role: "manager" }
+      }
+
+      expect(response).to have_http_status(:created)
+      expect(User.find_by(email: "mgr@windmitigation.network").role).to eq("manager")
+    end
+
+    it "forbids agency users from provisioning staff" do
+      agency = create(:agency, organization: org)
+      agency_user = create(:agency_user, organization: org, agency: agency)
+      sign_in_via_omniauth(agency_user)
+
+      post "/api/v1/users", params: {
+        user: { name: "X", email: "x@windmitigation.network", role: "inspector" }
+      }
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 end

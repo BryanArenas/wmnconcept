@@ -32,6 +32,12 @@ Rails.application.configure do
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
 
+  # Preview outbound mail in the browser instead of sending it (invites,
+  # invoices, reports). Requires no SMTP/Postmark adapter locally. Invite links
+  # are also surfaced as a copyable link in the admin UI, so provisioning works
+  # even without the background worker running.
+  config.action_mailer.delivery_method = :letter_opener
+
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 

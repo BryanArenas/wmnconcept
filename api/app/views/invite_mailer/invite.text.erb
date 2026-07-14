@@ -1,0 +1,12 @@
+Hi <%= @principal.name %>,
+
+<%= @inviter_name.present? ? "#{@inviter_name} has" : "You've been" %> invited to <%= @org_name %>.
+
+To activate your account, set your password using the link below:
+
+<%= @accept_url %>
+
+This link expires in 14 days. If you weren't expecting this invitation, you can ignore this email.
+
+Thank you,
+Wind Mitigation Network LLC

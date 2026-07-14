@@ -19,7 +19,7 @@ export default async function AgenciesPage() {
     }).catch(() => ({ data: [] as Agency[], meta: { next_cursor: null } })),
   ]);
 
-  const canCreate = user?.role === "org_admin";
+  const canCreate = user?.role === "org_admin" || user?.role === "coordinator";
 
   return (
     <div className="flex flex-col gap-6">
