@@ -7,6 +7,9 @@ class UserPolicy < ApplicationPolicy
 
   def create? = user.org_admin? || user.coordinator?
 
+  # Changing roles / active status is permissions management — org_admin only.
+  def update? = user.org_admin?
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       super  # organization_id floor — agency users never reach this policy

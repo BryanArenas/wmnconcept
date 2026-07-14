@@ -12,7 +12,9 @@ module OrganizationSerializer
       subdomain: organization.subdomain,
       brand_primary_hex: organization.brand_primary_hex,
       logo_url: organization.logo_url,
-      timezone: organization.timezone
+      timezone: organization.timezone,
+      phone: organization.phone,
+      primary_email: organization.primary_email
     }
   end
 end

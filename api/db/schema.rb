@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_14_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -51,6 +51,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_120000) do
     t.index ["omniauth_provider", "omniauth_uid"], name: "index_agency_users_on_omniauth_identity", unique: true, where: "(omniauth_uid IS NOT NULL)"
     t.index ["organization_id", "email"], name: "index_agency_users_on_organization_id_and_email", unique: true
     t.index ["organization_id"], name: "index_agency_users_on_organization_id"
+  end
+
+  create_table "availability_blocks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "all_day", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "ends_at", null: false
+    t.uuid "organization_id", null: false
+    t.string "reason"
+    t.datetime "starts_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["organization_id"], name: "index_availability_blocks_on_organization_id"
+    t.index ["user_id", "starts_at"], name: "index_availability_blocks_on_user_id_and_starts_at"
+    t.index ["user_id"], name: "index_availability_blocks_on_user_id"
   end
 
   create_table "homeowners", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -326,6 +340,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_120000) do
   add_foreign_key "agencies", "organizations"
   add_foreign_key "agency_users", "agencies"
   add_foreign_key "agency_users", "organizations"
+  add_foreign_key "availability_blocks", "organizations"
+  add_foreign_key "availability_blocks", "users"
   add_foreign_key "homeowners", "organizations"
   add_foreign_key "inspection_events", "inspections"
   add_foreign_key "inspection_events", "organizations"

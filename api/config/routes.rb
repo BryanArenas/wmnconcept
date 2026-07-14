@@ -59,9 +59,15 @@ Rails.application.routes.draw do
         get "report/download", to: "reports#download"
       end
 
+      # Company settings (admin).
+      resource :organization, only: %i[show update], controller: "organization"
+
+      # Inspector availability blocks (Settings → Availability).
+      resources :availability_blocks, only: %i[index create destroy]
+
       # Staff roster for dispatch inspector dropdown (spec §8.8, M4) + staff
-      # provisioning (create invites a new inactive/unconfirmed member).
-      resources :users, only: %i[index create]
+      # provisioning (create invites a member) + permissions management (update).
+      resources :users, only: %i[index create update]
 
       # Billing surface (spec §4, §8.5, M7).
       resources :invoices, only: %i[index show] do

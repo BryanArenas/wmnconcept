@@ -7,6 +7,8 @@ class User < ApplicationRecord
   belongs_to :organization
   belongs_to :office, optional: true
 
+  has_many :availability_blocks, dependent: :destroy
+
   # Backed by a string column + DB check constraint (see migration).
   enum :role, {
     org_admin: "org_admin",

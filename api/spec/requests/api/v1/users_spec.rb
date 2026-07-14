@@ -128,4 +128,50 @@ RSpec.describe "API V1 Users", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+
+  describe "PATCH /api/v1/users/:id" do
+    it "lets an admin change a member's role (happy path)" do
+      admin = create(:user, :org_admin, organization: org)
+      member = create(:user, :inspector, organization: org)
+      sign_in_via_omniauth(admin)
+
+      patch "/api/v1/users/#{member.id}", params: { user: { role: "coordinator" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(member.reload.role).to eq("coordinator")
+    end
+
+    it "lets an admin deactivate a member" do
+      admin = create(:user, :org_admin, organization: org)
+      member = create(:user, :inspector, organization: org)
+      sign_in_via_omniauth(admin)
+
+      patch "/api/v1/users/#{member.id}", params: { user: { active: false } }
+
+      expect(response).to have_http_status(:ok)
+      expect(member.reload.active).to be(false)
+    end
+
+    it "prevents an admin from changing their own role (no self-lockout, edge)" do
+      admin = create(:user, :org_admin, organization: org)
+      sign_in_via_omniauth(admin)
+
+      patch "/api/v1/users/#{admin.id}", params: { user: { role: "inspector" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body.dig("error", "code")).to eq("self_change_forbidden")
+      expect(admin.reload.role).to eq("org_admin")
+    end
+
+    it "forbids a coordinator from changing roles (auth failure → 403)" do
+      coordinator = create(:user, :coordinator, organization: org)
+      member = create(:user, :inspector, organization: org)
+      sign_in_via_omniauth(coordinator)
+
+      patch "/api/v1/users/#{member.id}", params: { user: { role: "org_admin" } }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(member.reload.role).to eq("inspector")
+    end
+  end
 end

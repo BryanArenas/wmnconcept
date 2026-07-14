@@ -13,6 +13,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   Users,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/agencies", label: "Agencies", icon: Building2 },
     { href: "/team", label: "Team", icon: Users },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
   coordinator: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,9 +47,16 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/agencies", label: "Agencies", icon: Building2 },
     { href: "/team", label: "Team", icon: Users },
+    { href: "/settings", label: "Settings", icon: Settings },
   ],
-  manager: [{ href: "/review", label: "Review queue", icon: ClipboardCheck }],
-  inspector: [{ href: "/today", label: "Today", icon: ClipboardList }],
+  manager: [
+    { href: "/review", label: "Review queue", icon: ClipboardCheck },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
+  inspector: [
+    { href: "/today", label: "Today", icon: ClipboardList },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ],
 };
 
 // Agency users (M2) live in a separate table; their nav is kept here so the

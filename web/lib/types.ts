@@ -14,6 +14,18 @@ export interface Organization {
   brand_primary_hex: string;
   logo_url: string | null;
   timezone: string;
+  phone?: string | null;
+  primary_email?: string | null;
+}
+
+// Inspector availability block (Settings → Availability).
+export interface AvailabilityBlock {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  all_day: boolean;
+  reason: string | null;
+  created_at: string;
 }
 
 export interface Office {

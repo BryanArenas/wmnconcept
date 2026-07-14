@@ -40,10 +40,34 @@ module Api
         render json: UserSerializer.call(user).merge(invite_url:), status: :created
       end
 
+      # PATCH /api/v1/users/:id — change a member's role or active status
+      # (permissions management, org_admin only). You can't change your own role
+      # or active status here, so an admin can't accidentally lock themselves out.
+      def update
+        user = policy_scope(User).find(params[:id])
+        authorize user
+        return reject_self_change if user.id == current_user.id
+
+        user.update!(user_update_params)
+        render json: UserSerializer.call(user.reload)
+      end
+
       private
 
       def user_params
         params.require(:user).permit(:name, :email, :role, :license_number, :office_id)
+      end
+
+      def user_update_params
+        params.require(:user).permit(:role, :active, :license_number)
+      end
+
+      def reject_self_change
+        render_error(
+          code: "self_change_forbidden",
+          message: "You can't change your own role or active status.",
+          status: :unprocessable_content
+        )
       end
 
       # Valid enum role AND within the actor's authority.
