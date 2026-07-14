@@ -18,6 +18,10 @@ Rails.application.routes.draw do
       get  "invitations",        to: "invitations#show"
       post "invitations/accept", to: "invitations#accept"
 
+      # Public placeholder pay page reached from the invoice link (spec §11).
+      get  "pay/:id",         to: "payments#show"
+      post "pay/:id/confirm", to: "payments#confirm"
+
       # Agencies & partner logins (spec §4, §12 M2). org_admin-gated via Pundit.
       resources :agencies, only: %i[index create] do
         resources :agency_users, only: %i[create]

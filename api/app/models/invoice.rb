@@ -24,6 +24,25 @@ class Invoice < ApplicationRecord
 
   scope :for_status, ->(s) { where(status: s) }
 
+  DUE_IN = 14.days
+
+  # Idempotent creation of the single invoice for an inspection (spec §0, §9):
+  # unique index on inspection_id + find_or_create means a retry, a redelivery,
+  # or the schedule-time and delivery-time paths both landing here never double
+  # bill. Amount is snapshotted from the inspection price + agency billing mode
+  # (ADR 0002). Callers rescue nothing — RecordNotUnique on a concurrent double
+  # fire is handled by the job that calls this.
+  def self.create_for(inspection)
+    find_or_create_by!(inspection_id: inspection.id) do |invoice|
+      invoice.organization = inspection.organization
+      invoice.agency       = inspection.agency
+      invoice.amount_cents = InvoiceAmount.for(inspection)
+      invoice.billing_mode = inspection.agency.billing_mode
+      invoice.status       = "draft"
+      invoice.due_at       = DUE_IN.from_now
+    end
+  end
+
   def amount_dollars = amount_cents / 100.0
 
   # Lifecycle helpers (spec §3: draft → sent → paid | void). Kept explicit rather

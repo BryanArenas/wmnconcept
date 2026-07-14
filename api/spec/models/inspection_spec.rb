@@ -58,6 +58,13 @@ RSpec.describe Inspection, type: :model do
       expect(insp.inspection_events.chronological.last.kind).to eq("scheduled")
     end
 
+    it "requests up-front payment on schedule (spec §6/§9)" do
+      insp = inspection(:assigned)
+
+      expect { insp.schedule_for!(3.days.from_now, actor: coordinator) }
+        .to have_enqueued_job(RequestPaymentJob).with(insp)
+    end
+
     it "refuses to schedule with no datetime (guard)" do
       insp = inspection(:assigned)
       expect { insp.schedule! }.to raise_error(AASM::InvalidTransition)

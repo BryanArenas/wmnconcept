@@ -63,13 +63,15 @@ class Inspection < ApplicationRecord
     end
 
     # assigned → scheduled. Caller sets scheduled_at first; enqueues the T-24h
-    # reminder (spec §6/§9). Enqueue rides the transition's transaction — Solid
-    # Queue is DB-backed, so a rolled-back schedule also un-enqueues the reminder.
+    # reminder and the up-front payment request (spec §6/§9). Enqueues ride the
+    # transition's transaction — Solid Queue is DB-backed, so a rolled-back
+    # schedule also un-enqueues the reminder and the invoice.
     event :schedule do
       transitions from: :assigned, to: :scheduled, guard: :scheduled_at_present?
       after do
         record_transition(:scheduled, "Scheduled for #{scheduled_at&.iso8601}")
         enqueue_reminder
+        RequestPaymentJob.perform_later(self)
       end
     end
 
