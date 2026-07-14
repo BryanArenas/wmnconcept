@@ -53,6 +53,30 @@ export interface Paginated<T> {
   meta: { next_cursor: string | null };
 }
 
+// Staff dashboard snapshot (GET /api/v1/dashboard).
+export interface DashboardStats {
+  pending_requests: number;
+  unassigned: number;
+  scheduled: number;
+  awaiting_review: number;
+}
+
+export interface ActivityEvent {
+  id: number;
+  kind: string;
+  message: string;
+  actor_label: string | null;
+  to_status: InspectionStatus | string | null;
+  occurred_at: string;
+  inspection_id: string;
+  property_address: string | null;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  activity: ActivityEvent[];
+}
+
 export type AgencyType = "insurance" | "real_estate" | "other";
 export type BillingMode = "fixed_rate" | "commission";
 
