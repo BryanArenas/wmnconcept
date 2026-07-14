@@ -88,6 +88,7 @@ class DemoData
     @coordinator = @org.users.find_by!(role: "coordinator")
     @manager     = @org.users.find_by!(role: "manager")
     @config_by_type = @org.inspection_type_configs.index_by(&:inspection_type)
+    @template_by_type = @org.inspection_form_templates.index_by(&:inspection_type)
     @types = @config_by_type.keys
     @cursor = 0
     @counts = Hash.new(0)
@@ -187,11 +188,72 @@ class DemoData
 
     invoice = build_invoice(inspection, status)
     build_timeline(inspection, status, created_at, scheduled_at, invoice)
+
+    # Captured evidence exists once it's been submitted for review or beyond, so
+    # the review pane has form answers + photos to show.
+    if lifecycle_index(status) >= 4
+      build_form_response(inspection)
+      build_photos(inspection)
+    end
     build_report(inspection) if status == "delivered"
 
     @counts[:inspection] += 1
     log_counts(status.to_sym)
     inspection
+  end
+
+  # ---- captured evidence -----------------------------------------------------
+
+  def build_form_response(inspection)
+    template = @template_by_type[inspection.inspection_type]
+    return unless template
+
+    fields = template.schema["fields"] || []
+    responses = fields.each_with_object({}) { |f, h| h[f["key"]] = demo_answer(f) }
+    inspection.create_inspection_form_response!(organization: @org, responses: responses)
+  end
+
+  PHOTO_NAMES = [
+    "elevation-front.jpg", "roof-covering.jpg", "roof-deck-attachment.jpg",
+    "roof-to-wall.jpg", "opening-protection.jpg", "attic-swr.jpg", "permit-photo.jpg"
+  ].freeze
+
+  def build_photos(inspection)
+    PHOTO_NAMES.sample(rand(3..5)).each do |name|
+      inspection.inspection_photos.create!(
+        organization: @org,
+        s3_key: "inspections/#{inspection.id}/photos/#{SecureRandom.uuid}.jpg",
+        filename: name,
+        content_type: "image/jpeg",
+        upload_state: "uploaded"
+      )
+    end
+  end
+
+  def demo_answer(field)
+    case field["type"]
+    when "select"       then (field["options"] || ["N/A"]).sample
+    when "multi_select" then Array((field["options"] || []).sample)
+    when "boolean"      then [true, false].sample
+    when "number"       then demo_number(field["key"].to_s)
+    else demo_text(field["key"].to_s)
+    end
+  end
+
+  def demo_number(key)
+    return rand(1978..2019) if key.include?("year") || key.include?("permit")
+    return rand(1..25)      if key.include?("age") || key.include?("years") || key.include?("life")
+    return [100, 75, 50].sample if key.include?("percent")
+    return rand(1200..3800) if key.include?("sqft") || key.include?("area")
+
+    rand(1..12)
+  end
+
+  def demo_text(key)
+    return ["Clean install, no issues noted.", "Minor wear consistent with age.",
+            "Homeowner reports no active leaks."].sample if key.include?("note")
+
+    "Verified on site"
   end
 
   # ---- requests / properties / homeowners -----------------------------------

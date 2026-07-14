@@ -37,7 +37,19 @@ class InspectionPolicy < ApplicationPolicy
   def report?   = true
   def download? = true
 
+  # Read captured evidence (form answers + photos) for the review pane. Open to
+  # staff reviewers (org_admin, coordinator, manager) and the field actor — but
+  # never to agency principals, who only ever see the delivered report. This is
+  # separate from show_form? (field capture) so a plain manager can review.
+  def evidence? = staff_reviewer? || field_actor?
+
   private
+
+  def staff_reviewer?
+    return false if user.agency?
+
+    user.org_admin? || user.coordinator? || user.manager?
+  end
 
   def field_actor?
     return false if user.agency?

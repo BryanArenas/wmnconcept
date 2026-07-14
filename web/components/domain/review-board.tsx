@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusDot } from "@/components/domain/status-dot";
 import { ReportCard } from "@/components/domain/report-card";
+import { ReviewEvidenceSheet } from "@/components/domain/review-evidence-sheet";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ interface Props {
 export function ReviewBoard({ initialQueue, recentlyDelivered }: Props) {
   const [queue, setQueue] = React.useState<Inspection[]>(initialQueue);
   const [rejectingId, setRejectingId] = React.useState<string | null>(null);
+  const [reviewing, setReviewing] = React.useState<Inspection | null>(null);
   const [approvedIds, setApprovedIds] = React.useState<Set<string>>(new Set());
 
   function removeFromQueue(id: string) {
@@ -65,6 +67,7 @@ export function ReviewBoard({ initialQueue, recentlyDelivered }: Props) {
               approved={approvedIds.has(inspection.id)}
               onApprove={() => handleApprove(inspection)}
               onReject={() => setRejectingId(inspection.id)}
+              onReview={() => setReviewing(inspection)}
             />
           ))
         )}
@@ -90,6 +93,21 @@ export function ReviewBoard({ initialQueue, recentlyDelivered }: Props) {
           setRejectingId(null);
         }}
       />
+
+      <ReviewEvidenceSheet
+        inspection={reviewing}
+        open={reviewing !== null}
+        onOpenChange={(o) => !o && setReviewing(null)}
+        approved={reviewing ? approvedIds.has(reviewing.id) : false}
+        onApprove={() => {
+          if (reviewing) handleApprove(reviewing);
+          setReviewing(null);
+        }}
+        onReject={() => {
+          if (reviewing) setRejectingId(reviewing.id);
+          setReviewing(null);
+        }}
+      />
     </div>
   );
 }
@@ -99,11 +117,13 @@ function ReviewCard({
   approved,
   onApprove,
   onReject,
+  onReview,
 }: {
   inspection: Inspection;
   approved: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onReview: () => void;
 }) {
   const typeLabel = inspection.inspection_type
     .replace(/_/g, " ")
@@ -112,12 +132,19 @@ function ReviewCard({
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="flex items-start justify-between gap-4 p-5">
-        <div className="flex flex-col gap-1">
+        {/* Clicking the details opens the evidence pane to review before deciding. */}
+        <button
+          type="button"
+          onClick={onReview}
+          className="flex flex-col gap-1 rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <div className="flex items-center gap-2">
             <StatusDot status={inspection.status} />
             <span className="text-label text-muted-foreground">{typeLabel}</span>
           </div>
-          <p className="text-sm font-medium">{inspection.property_address}</p>
+          <p className="text-sm font-medium underline-offset-2 hover:underline">
+            {inspection.property_address}
+          </p>
           <p className="text-label text-muted-foreground">
             {inspection.homeowner_name} · {inspection.agency_name}
           </p>
@@ -126,7 +153,7 @@ function ReviewCard({
               Inspector: {inspection.assigned_inspector_name}
             </p>
           )}
-        </div>
+        </button>
 
         {approved ? (
           <Badge variant="secondary" className="shrink-0">
@@ -134,7 +161,10 @@ function ReviewCard({
             Approved
           </Badge>
         ) : (
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+            <Button size="sm" variant="ghost" onClick={onReview}>
+              Review evidence
+            </Button>
             <Button size="sm" variant="outline" onClick={onReject}>
               Reject
             </Button>
@@ -147,8 +177,8 @@ function ReviewCard({
       </div>
       {!approved && (
         <p className="border-t border-border px-5 py-3 text-label text-muted-foreground">
-          Approving generates the PDF, delivers it to the homeowner and agency, and
-          creates the invoice.
+          Click the property to review the inspector's photos and findings before
+          approving. Approving generates the PDF, delivers it, and creates the invoice.
         </p>
       )}
     </div>

@@ -24,6 +24,18 @@ class PhotoUploadService
       { photo:, presigned_url: url }
     end
 
+    # Short-lived presigned GET so a reviewer can view an uploaded photo inline.
+    # Returns nil when S3 is not configured (dev/test) — the reviewer sees the
+    # filename chip instead, since no real bytes were ever uploaded locally.
+    def view_url(photo)
+      return nil unless s3_configured?
+
+      require "aws-sdk-s3"
+      client = Aws::S3::Client.new(region: REGION)
+      signer = Aws::S3::Presigner.new(client:)
+      signer.presigned_url(:get_object, bucket: BUCKET, key: photo.s3_key, expires_in: URL_EXPIRY.to_i)
+    end
+
     private
 
     def build_key(inspection, filename)

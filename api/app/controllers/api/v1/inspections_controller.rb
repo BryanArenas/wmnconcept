@@ -90,6 +90,31 @@ module Api
         render json: { data: InspectionSerializer.call(inspection.reload) }
       end
 
+      # GET captured evidence for the review pane: the form fields + saved
+      # answers + uploaded photos, in one payload so a reviewer can actually see
+      # what they're approving (spec §8.13). Photos carry a short-lived view URL
+      # when S3 is configured; otherwise the filename (no bytes exist locally).
+      def evidence
+        inspection = find_scoped_inspection
+        authorize inspection, :evidence?
+        template = current_organization.inspection_form_templates
+                                       .active
+                                       .find_by(inspection_type: inspection.inspection_type)
+        response = inspection.inspection_form_response
+
+        render json: {
+          inspection_id: inspection.id,
+          inspection_type: inspection.inspection_type,
+          form: {
+            fields: template&.schema&.dig("fields") || [],
+            responses: response&.responses || {}
+          },
+          photos: inspection.inspection_photos.uploaded.order(:created_at).map do |p|
+            InspectionPhotoSerializer.call(p).merge(view_url: PhotoUploadService.view_url(p))
+          end
+        }
+      end
+
       # --- Field capture (M5) ---------------------------------------------------
 
       # GET all photos for an inspection (field app resume after restart).

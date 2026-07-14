@@ -33,6 +33,7 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/requests", label: "Requests", icon: Inbox },
     { href: "/dispatch", label: "Dispatch", icon: SendHorizonal },
+    { href: "/review", label: "Review queue", icon: ClipboardCheck },
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/agencies", label: "Agencies", icon: Building2 },
     { href: "/team", label: "Team", icon: Users },

@@ -181,6 +181,21 @@ export interface InspectionFormResponse {
   updated_at: string;
 }
 
+// Captured evidence for the review pane (GET /inspections/:id/evidence).
+export interface EvidencePhoto extends InspectionPhoto {
+  view_url: string | null;
+}
+
+export interface InspectionEvidence {
+  inspection_id: string;
+  inspection_type: string;
+  form: {
+    fields: FormField[];
+    responses: Record<string, string | number | boolean | string[]>;
+  };
+  photos: EvidencePhoto[];
+}
+
 // M4 — dispatch + calendar (mirrors InspectionSerializer)
 export interface Inspection {
   id: string;

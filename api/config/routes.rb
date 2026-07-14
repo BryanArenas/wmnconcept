@@ -46,6 +46,7 @@ Rails.application.routes.draw do
           # Review → delivery (M6)
           post   :approve
           post   :reject
+          get    :evidence
           # Field capture (M5)
           get    :form_template
           get    :photos, to: "inspections#photos_index"
